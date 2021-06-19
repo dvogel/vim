@@ -5448,7 +5448,7 @@ get_command_name(expand_T *xp UNUSED, int idx)
 /*
  * Handle ":namecolor rgb={hex-rgb} name={color-name}
  * Example ":namecolor rgb=#ffdab9 name='peach puff'"
- * Example ":namecolor rgb=(255, 218, 185) name='peach puff'"
+ * Example ":namecolor name=PeachPuff rgb=#ffdab9"
  */
     static void
 ex_namecolor(exarg_T *eap)

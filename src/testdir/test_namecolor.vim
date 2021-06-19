@@ -25,4 +25,9 @@ func Test_namecolor_highlight()
   call assert_equal(0, len(v:errors))
 endfunc
 
+func Test_doc_examples()
+ namecolor rgb=#ffdab9 name='peach puff'
+ namecolor name=PeachPuff rgb=#ffdab9
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab
