@@ -6712,6 +6712,8 @@ ensure_colornames_capacity(int additional) {
     return new_capacity;
 }
 
+// Returns the color currently mapped to the given name or INVALCOLOR if no
+// such name exists in the color table.
     guicolor_T
 colorname2rgb(char_u *name)
 {
@@ -6721,13 +6723,14 @@ colorname2rgb(char_u *name)
     for (int i = 0; i < colornames_table_size; i++)
 	if (STRICMP(name, colornames_table[i].color_name) == 0)
 	    return gui_adjust_rgb(colornames_table[i].color);
-
-    for (int i = 0; i < colornames_table_size; i++)
-	smsg("colornames_table[%d]: %s => %d", i, colornames_table[i].color_name, colornames_table[i].color);
 	
     return INVALCOLOR;
 }
 
+// Maps the given name to the given color value, overwriting any current
+// mapping, and allocating additional color table capacity when needed. If
+// allocation fails the table will remain unchanged and the user will receive
+// an error message.
     void
 save_colorname(guicolor_T col, char_u *name)
 {
@@ -6901,7 +6904,7 @@ gui_get_color_cmn(char_u *name)
     /*
      * Not a traditional color. Load rgb.txt color aliases and then consult the alias table.
      */
-    /* load_rgb_txt(); */
+    load_rgb_txt();
 
     return colorname2rgb(name);
 }
