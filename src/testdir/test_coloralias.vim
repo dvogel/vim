@@ -1,31 +1,26 @@
-" Tests for ":coloralias"
+" Tests for ":namecolor"
 
-" source view_util.vim
-" source screendump.vim
-" source check.vim
-" source script_util.vim
-
-func Test_coloralias()
-  " basic test if ":coloralias" doesn't crash
-  coloralias rgb=#ffffff alias=white
-  coloralias rgb=#ffeedd alias='a redish white'
+func Test_namecolor()
+  " basic test if ":namecolor" doesn't crash
+  namecolor rgb=#ffffff name=white
+  namecolor rgb=#ffeedd name='a redish white'
   call assert_equal(0, len(v:errors))
 endfunc
 
-func Test_coloralias_invalid_syntax()
-  call assert_fails("coloralias rgb=aabbcc", "Syntax error in coloralias")
-  call assert_fails("coloralias alias='start of a col", "Broken quotes for alias=")
-  call assert_fails("coloralias alias= rgb=", "Syntax error in coloralias")
+func Test_namecolor_invalid_syntax()
+  call assert_fails("namecolor rgb=aabbcc", "Syntax error in namecolor")
+  call assert_fails("namecolor name='start of a col", "Broken quotes for name=")
+  call assert_fails("namecolor name= rgb=", "Syntax error in namecolor")
 endfunc
 
-func Test_coloralias_required_args()
-  call assert_fails('coloralias', 'Missing ')
-  call assert_fails('coloralias alias=red', "Missing 'rgb='")
-  call assert_fails('coloralias rgb=#ff0000', "Missing 'alias='")
+func Test_namecolor_required_args()
+  call assert_fails('namecolor', 'Missing ')
+  call assert_fails('namecolor name=red', "Missing 'rgb='")
+  call assert_fails('namecolor rgb=#ff0000', "Missing 'name='")
 endfunc
 
-func Test_coloralias_highlight()
-  coloralias rgb=#ffeedd alias='a redish white'
+func Test_namecolor_highlight()
+  namecolor rgb=#ffeedd name='a redish white'
   highlight Normal guifg='a redish white'
   call assert_equal(0, len(v:errors))
 endfunc

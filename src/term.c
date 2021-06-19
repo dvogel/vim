@@ -6750,7 +6750,8 @@ save_colorname(guicolor_T col, char_u *name)
     colornames_table_size++;
 }
 
-// Establishes color aliases for each entry in rgb.txt.
+// Establishes a color alias for each entry in rgb.txt. Repeated invocations
+// will only load the color data once.
     void
 load_rgb_txt() {
 # define LINE_LEN 100

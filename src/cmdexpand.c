@@ -1700,7 +1700,7 @@ set_one_cmd_context(
 	    xp->xp_pattern = arg;
 	    break;
 
-	case CMD_coloralias:
+	case CMD_namecolor:
 	    xp->xp_context = EXPAND_NOTHING;
 	    xp->xp_pattern = arg;
 	    break;

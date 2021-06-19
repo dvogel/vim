@@ -86,7 +86,7 @@ static char_u	*replace_makeprg(exarg_T *eap, char_u *p, char_u **cmdlinep);
 #endif
 static char_u	*repl_cmdline(exarg_T *eap, char_u *src, int srclen, char_u *repl, char_u **cmdlinep);
 static void	ex_highlight(exarg_T *eap);
-static void	ex_coloralias(exarg_T *eap);
+static void	ex_namecolor(exarg_T *eap);
 static void	ex_colorscheme(exarg_T *eap);
 static void	ex_cquit(exarg_T *eap);
 static void	ex_quit_all(exarg_T *eap);
@@ -5446,12 +5446,12 @@ get_command_name(expand_T *xp UNUSED, int idx)
 }
 
 /*
- * Handle ":coloralias rgb={hex-rgb} alias={color-name}
- * Example ":coloralias rgb=#ffdab9 alias='peach puff'"
- * Example ":coloralias rgb=(255, 218, 185) alias='peach puff'"
+ * Handle ":namecolor rgb={hex-rgb} name={color-name}
+ * Example ":namecolor rgb=#ffdab9 name='peach puff'"
+ * Example ":namecolor rgb=(255, 218, 185) name='peach puff'"
  */
     static void
-ex_coloralias(exarg_T *eap)
+ex_namecolor(exarg_T *eap)
 {
     guicolor_T color = INVALCOLOR;
 
@@ -5469,13 +5469,13 @@ ex_coloralias(exarg_T *eap)
 
 	mark_end = skipto_esc(mark, '=');
 	if ((mark_end == NULL) || (*mark_end == NUL)) {
-	    emsg(_("Syntax error in coloralias. Expected 'rgb=' or 'alias='"));
+	    emsg(_("Syntax error in namecolor. Expected 'rgb=' or 'name='"));
 	    return;
 	}
 
 	if (STRNCMP(mark, "rgb=", mark_end - mark) == 0) {
 	    if (*++mark_end == NUL) {
-		emsg(_("Syntax error in coloralias. Expected 'rgb=' value."));
+		emsg(_("Syntax error in namecolor. Expected 'rgb=' value."));
 		return;
 	    }
 
@@ -5489,13 +5489,13 @@ ex_coloralias(exarg_T *eap)
 		    return;
 		}
 	    } else {
-		emsg(_("Syntax error in coloralias. All 'rgb=' values must start with '#'."));
+		emsg(_("Syntax error in namecolor. All 'rgb=' values must start with '#'."));
 		return;
 	    }
 
-	} else if (STRNCMP(mark, "alias=", mark_end - mark) == 0) {
+	} else if (STRNCMP(mark, "name=", mark_end - mark) == 0) {
 	    if (*++mark_end == NUL) {
-		emsg(_("Syntax error in coloralias. The 'alias=' argument requires a value. Found end of input."));
+		emsg(_("Syntax error in namecolor. The 'name=' argument requires a value. Found end of input."));
 		return;
 	    }
 
@@ -5503,7 +5503,7 @@ ex_coloralias(exarg_T *eap)
 		mark = mark_end + 1;
 		mark_end = skipto_esc(mark, '\'');
 		if (*mark_end != '\'') {
-		    emsg(_("Broken quotes for alias="));
+		    emsg(_("Broken quotes for name="));
 		    return;
 		}
 	    } else {
@@ -5512,14 +5512,14 @@ ex_coloralias(exarg_T *eap)
 	    }
 
 	    if (mark_end == mark) {
-		semsg(_("Syntax error in coloralias. The 'alias=' argument requires a value. Found: %s"), mark);
+		semsg(_("Syntax error in namecolor. The 'name=' argument requires a value. Found: %s"), mark);
 		return;
 	    }
 
 	    alias = vim_strnsave(mark, mark_end - mark);
 	    mark_end = skiptowhite(mark_end); // Just to skip over the trailing quote
 	} else {
-	    msg(_("Syntax error in coloralias. Expected 'rgb=' or 'alias='"));
+	    msg(_("Syntax error in namecolor. Expected 'rgb=' or 'name='"));
 	    return;
 	}
     }
@@ -5528,7 +5528,7 @@ ex_coloralias(exarg_T *eap)
 	emsg(_("Missing 'rgb=' argument."));
 	return;
     } else if (alias == NULL) {
-	emsg(_("Missing 'alias=' argument."));
+	emsg(_("Missing 'name=' argument."));
 	return;
     }
 
