@@ -5520,7 +5520,6 @@ ex_namecolor(exarg_T *eap)
 	    {
 		mark = mark_end + 1;
 		mark_end = vim_strchr(mark, '\'');
-		// if ((*mark_end != '\'') || (mark_end == mark))
 		if (mark_end == NULL)
 		{
 		    emsg(_("Broken quotes for name="));
