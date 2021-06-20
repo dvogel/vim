@@ -6737,7 +6737,6 @@ save_colorname(guicolor_T col, char_u *name)
     for (int i = 0; i < colornames_table_size; i++)
 	if (STRICMP(name, colornames_table[i].color_name) == 0)
 	{
-	    smsg(_("Color name ('%s') is being overwritten."), name);
 	    colornames_table[i].color = col;
 	    return;
 	}
