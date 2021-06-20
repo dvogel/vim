@@ -4,6 +4,9 @@ func Test_namecolor()
   " basic test if ":namecolor" doesn't crash
   namecolor rgb=#ffffff name=white
   namecolor rgb=#ffeedd name='a redish white'
+  namecolor rgb=#ffffff name=hyphenated-name
+  namecolor rgb=#ffffff name=underscored_name
+
   call assert_equal(0, len(v:errors))
 endfunc
 

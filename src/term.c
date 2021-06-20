@@ -6837,7 +6837,6 @@ load_rgb_txt() {
 	}
     }
 
-    msg(_("rgb.txt loaded."));
     already_loaded = 1;
     fclose(fd);
 }

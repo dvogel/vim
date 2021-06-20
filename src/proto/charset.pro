@@ -53,7 +53,6 @@ int vim_toupper(int c);
 int vim_tolower(int c);
 char_u *skiptowhite(char_u *p);
 char_u *skiptowhite_esc(char_u *p);
-char_u *skipto_esc(char_u *p, char_u needle);
 long getdigits(char_u **pp);
 int vim_isblankline(char_u *lbuf);
 void vim_str2nr(char_u *start, int *prep, int *len, int what, varnumber_T *nptr, uvarnumber_T *unptr, int maxlen, int strict);

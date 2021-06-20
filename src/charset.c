@@ -1748,20 +1748,6 @@ skiptowhite_esc(char_u *p)
 }
 
 /*
- * skipto_esc: Skips over the given char, but also skip escaped chars.
- */
-    char_u *
-skipto_esc(char_u *p, char_u needle) {
-    while (p && *p != NUL && *p != needle)
-    {
-	if ((*p == '\\' || *p == Ctrl_V) && *(p + 1) != NUL)
-	    ++p;
-	++p;
-    }
-    return p;
-}
-
-/*
  * Getdigits: Get a number from a string and skip over it.
  * Note: the argument is a pointer to a char_u pointer!
  */

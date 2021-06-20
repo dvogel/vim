@@ -5469,8 +5469,8 @@ ex_namecolor(exarg_T *eap)
 	    break;
 	}
 
-	mark_end = skipto_esc(mark, '=');
-	if ((mark_end == NULL) || (*mark_end == NUL))
+	mark_end = vim_strchr(mark, '=');
+	if (mark_end == NULL)
 	{
 	    emsg(_("Syntax error in namecolor. Expected 'rgb=' or 'name='"));
 	    return;
@@ -5488,6 +5488,11 @@ ex_namecolor(exarg_T *eap)
 	    {
 		mark = mark_end;
 		mark_end = skiphex(mark + 1);
+		if (mark_end - mark != 7)
+		{
+		    semsg(_("Invalid color: %s"), mark);
+		    return;
+		}
 		rgb = vim_strnsave(mark, mark_end - mark);
 		color = gui_get_color_cmn(rgb);
 		if (color == INVALCOLOR)
@@ -5514,8 +5519,9 @@ ex_namecolor(exarg_T *eap)
 	    if (*mark_end == '\'')
 	    {
 		mark = mark_end + 1;
-		mark_end = skipto_esc(mark, '\'');
-		if (*mark_end != '\'')
+		mark_end = vim_strchr(mark, '\'');
+		// if ((*mark_end != '\'') || (mark_end == mark))
+		if (mark_end == NULL)
 		{
 		    emsg(_("Broken quotes for name="));
 		    return;
