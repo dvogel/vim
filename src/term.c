@@ -6727,6 +6727,24 @@ colorname2rgb(char_u *name)
     return INVALCOLOR;
 }
 
+
+    guicolor_T
+decode_hex_color(char_u *hex)
+{
+    guicolor_T color;
+
+    if (hex[0] != '#' || STRLEN(hex) != 7)
+	return INVALCOLOR;
+
+    // Name is in "#rrggbb" format
+    color = RGB(((hex_digit(hex[1]) << 4) + hex_digit(hex[2])),
+		((hex_digit(hex[3]) << 4) + hex_digit(hex[4])),
+		((hex_digit(hex[5]) << 4) + hex_digit(hex[6])));
+    if (color > 0xffffff)
+	return INVALCOLOR;
+    return gui_adjust_rgb(color);
+}
+
 // Maps the given name to the given color value, overwriting any current
 // mapping, and allocating additional color table capacity when needed. If
 // allocation fails the table will remain unchanged and the user will receive
@@ -6883,16 +6901,9 @@ gui_get_color_cmn(char_u *name)
 	    {(char_u *)"yellow",	RGB(0xFF, 0xFF, 0x00)},
     };
 
-    if (name[0] == '#' && STRLEN(name) == 7)
-    {
-	// Name is in "#rrggbb" format
-	color = RGB(((hex_digit(name[1]) << 4) + hex_digit(name[2])),
-		    ((hex_digit(name[3]) << 4) + hex_digit(name[4])),
-		    ((hex_digit(name[5]) << 4) + hex_digit(name[6])));
-	if (color > 0xffffff)
-	    return INVALCOLOR;
-	return gui_adjust_rgb(color);
-    }
+    color = decode_hex_color(name);
+    if (color != INVALCOLOR)
+	return color;
 
     // Check if the name is one of the colors we know
     for (i = 0; i < (int)ARRAY_LENGTH(rgb_table); i++)

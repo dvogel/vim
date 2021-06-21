@@ -5494,7 +5494,7 @@ ex_namecolor(exarg_T *eap)
 		    return;
 		}
 		rgb = vim_strnsave(mark, mark_end - mark);
-		color = gui_get_color_cmn(rgb);
+		color = decode_hex_color(rgb);
 		if (color == INVALCOLOR)
 		{
 		    semsg(_("Invalid color: %s"), rgb);
@@ -5553,7 +5553,8 @@ ex_namecolor(exarg_T *eap)
 	emsg(_("Missing 'rgb=' argument."));
 	return;
     }
-    else if (alias == NULL)
+
+    if (alias == NULL)
     {
 	emsg(_("Missing 'name=' argument."));
 	return;
