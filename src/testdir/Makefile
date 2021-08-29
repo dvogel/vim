@@ -60,6 +60,7 @@ $(SCRIPTS_TINY_OUT) $(NEW_TESTS_RES): $(VIMPROG)
 # Execute an individual new style test, e.g.:
 # 	make test_largefile
 $(NEW_TESTS):
+	make clean
 	rm -f $@.res test.log messages
 	@MAKEFLAGS=--no-print-directory $(MAKE) -f Makefile $@.res VIMPROG=$(VIMPROG) XXDPROG=$(XXDPROG) SCRIPTSOURCE=$(SCRIPTSOURCE)
 	@cat messages
