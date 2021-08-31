@@ -527,11 +527,17 @@ func Test_geometry()
       call assert_equal(['31', '13'], lines)
     endif
   else
+    " When using GTK3 the menu and toolbar can have a larger character width
+    " and extra padding that causes the minimum window width to exceed the
+    " geometry.
+    let before =<< trim [CODE]
+      set guioptions=
+    [CODE]
     let after =<< trim [CODE]
       call writefile([&columns, &lines, getwinposx(), getwinposy(), string(getwinpos())], "Xtest_geometry")
       qall
     [CODE]
-    if RunVim([], after, '-f -g -geometry 31x13+41+43')
+    if RunVim(before, after, '-f -g -geometry 31x13+41+43')
       let lines = readfile('Xtest_geometry')
       call assert_equal(['31', '13', '41', '43', '[41, 43]'], lines)
     endif
