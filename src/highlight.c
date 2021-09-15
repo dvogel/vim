@@ -484,7 +484,6 @@ load_colors(char_u *name)
 #ifdef FEAT_EVAL
 	load_default_colors_lists();
 #endif
-	/* source_runtime((char_u *)"colors/lists/default.vim", DIP_ALL); */
 	apply_autocmds(EVENT_COLORSCHEMEPRE, name,
 					       curbuf->b_fname, FALSE, curbuf);
 	sprintf((char *)buf, "colors/%s.vim", name);

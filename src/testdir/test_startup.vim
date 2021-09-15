@@ -470,11 +470,13 @@ func Test_background_foreground()
     call writefile([&background], "Xtest_fg_bg")
     qall
   [CODE]
-  if RunVim([], after, '-f -g -background darkred -foreground yellow')
+  " This requires the -N (nocompatible) flag in order to load the default
+  " color list. Otherwise 'ivory' is an unrecognized color.
+  if RunVim([], after, '-N -f -g -background darkred -foreground yellow')
     let lines = readfile('Xtest_fg_bg')
     call assert_equal(['dark'], lines)
   endif
-  if RunVim([], after, '-f -g -background ivory -foreground darkgreen')
+  if RunVim([], after, '-N -f -g -background ivory -foreground darkgreen')
     let lines = readfile('Xtest_fg_bg')
     call assert_equal(['light'], lines)
   endif
