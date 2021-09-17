@@ -2209,7 +2209,7 @@ load_default_colors_lists()
 {
     // Lacking a default color list isn't the end of the world but it is likely
     // an inconvenience so users should know when it is missing.
-    if (source_runtime((char_u *)"colors/lists/default.vim", DIP_ALL) != OK)
+    if (source_runtime((char_u *)"colors/lists/default.vim", DIP_NOAFTER) != OK)
 	msg("failed to load colors/lists/default.vim");
 }
 #endif
