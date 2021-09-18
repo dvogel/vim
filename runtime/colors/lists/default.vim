@@ -7,6 +7,10 @@
 " these colors by introducing a new colors/lists/default.vim file earlier in
 " the runtimepath.
 
+if &compatible
+	finish
+endif
+
 call extend(v:colornames, {
 			\ 'snow': '#fffafa',
 			\ 'ghost white': '#f8f8ff',
