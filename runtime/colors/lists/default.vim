@@ -7,9 +7,8 @@
 " these colors by introducing a new colors/lists/default.vim file earlier in
 " the runtimepath.
 
-if &compatible
-	finish
-endif
+let s:keepcpo= &cpo
+set cpo&vim
 
 call extend(v:colornames, {
 			\ 'snow': '#fffafa',
@@ -795,5 +794,8 @@ call extend(v:colornames, {
 			\ 'silver': '#c0c0c0',
 			\ 'teal': '#008080'
 			\ }, 'keep')
+
+let &cpo= s:keepcpo
+unlet s:keepcpo
 
 "vim: sw=4
