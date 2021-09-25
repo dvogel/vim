@@ -6,6 +6,9 @@
 "
 " https://www.w3.org/TR/css-color-3/
 
+let s:keepcpo= &cpo
+set cpo&vim
+
 call extend(v:colornames, {
 			\ 'css_black': '#000000',
 			\ 'css_silver': '#c0c0c0',
@@ -157,5 +160,7 @@ call extend(v:colornames, {
 			\ 'css_yellowgreen': '#9acd32',
 			\ }, 'keep')
 
+let &cpo= s:keepcpo
+unlet s:keepcpo
 
 "vim: sw=4
