@@ -363,7 +363,7 @@ typedef struct Gui
     GtkWidget	*menubar_h;	    // menubar handle
     GtkWidget	*toolbar_h;	    // toolbar handle
 # endif
-# ifdef USE_GTK3
+# if defined(USE_GTK3) || defined(USE_GTK4)
     GdkRGBA	*fgcolor;	    // GDK-styled foreground color
     GdkRGBA	*bgcolor;	    // GDK-styled background color
     GdkRGBA	*spcolor;	    // GDK-styled special color
@@ -372,7 +372,7 @@ typedef struct Gui
     GdkColor	*bgcolor;	    // GDK-styled background color
     GdkColor	*spcolor;	    // GDK-styled special color
 # endif
-# ifdef USE_GTK3
+# if defined(USE_GTK3) || defined(USE_GTK4)
     cairo_surface_t *surface;       // drawarea surface
 # else
     GdkGC	*text_gc;	    // cached GC for normal text
@@ -384,7 +384,9 @@ typedef struct Gui
     GtkWidget	*tabline;	    // tab pages line handle
 # endif
 
+# ifndef USE_GTK4
     GtkAccelGroup *accel_group;
+# endif
     GtkWidget	*filedlg;	    // file selection dialog
     char_u	*browse_fname;	    // file name from filedlg
 

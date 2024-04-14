@@ -70,14 +70,18 @@
 #endif
 
 #ifdef FEAT_GUI_GTK
-# if GTK_CHECK_VERSION(3,0,0)
+# if GTK_CHECK_VERSION(4,0,0)
+#  include <gdk/gdkkeysyms.h>
+# elif GTK_CHECK_VERSION(3,0,0)
 #  include <gdk/gdkkeysyms-compat.h>
 # else
 #  include <gdk/gdkkeysyms.h>
 # endif
 # include <gdk/gdk.h>
-# ifdef MSWIN
+# if defined(MSWIN)
 #  include <gdk/gdkwin32.h>
+# elif defined(USE_GTK4)
+#  include <gdk/gdk.h>
 # else
 #  include <gdk/gdkx.h>
 # endif
@@ -295,6 +299,11 @@ load_menu_iconfile(char_u *name, GtkIconSize icon_size)
 # if GTK_CHECK_VERSION(3,10,0)
     int		     pixel_size = -1;
 
+#ifdef USE_GTK4
+    // In GTK4 actual pixel sizes are determined by themes via CSS. Therefore
+    // the pixbuf data should not be constrained to a specific pixel size.
+    pixel_size = -1;
+#else
     switch (icon_size)
     {
 	case GTK_ICON_SIZE_MENU:
@@ -321,6 +330,7 @@ load_menu_iconfile(char_u *name, GtkIconSize icon_size)
 	    pixel_size = 0;
 	    break;
     }
+#endif
 
     if (pixel_size > 0 || pixel_size == -1)
     {
@@ -334,7 +344,11 @@ load_menu_iconfile(char_u *name, GtkIconSize icon_size)
 	}
     }
     if (image == NULL)
+#ifdef USE_GTK4
+	image = gtk_image_new_from_icon_name("image-missing");
+#else
 	image = gtk_image_new_from_icon_name("image-missing", icon_size);
+#endif
 
     return image;
 # else // !GTK_CHECK_VERSION(3,10,0)
@@ -388,7 +402,11 @@ create_menu_icon(vimmenu_T *menu, GtkIconSize icon_size)
 	if (icon_name == NULL)
 	    icon_name = "image-missing";
 
+#  ifdef USE_GTK4
+	image = gtk_image_new_from_icon_name(icon_name);
+#  else
 	image = gtk_image_new_from_icon_name(icon_name, icon_size);
+#  endif
 # else
 	const char  *stock_id;
 	const int   n_ids = G_N_ELEMENTS(menu_stock_ids);
@@ -405,6 +423,7 @@ create_menu_icon(vimmenu_T *menu, GtkIconSize icon_size)
     return image;
 }
 
+# ifndef USE_GTK4
     static gint
 toolbar_button_focus_in_event(GtkWidget *widget UNUSED,
 			      GdkEventFocus *event UNUSED,
@@ -415,12 +434,33 @@ toolbar_button_focus_in_event(GtkWidget *widget UNUSED,
     // <Tab> into GtkPlug) immediately pass it to mainwin.
     if (gtk_socket_id != 0)
 	gtk_widget_grab_focus(gui.drawarea);
-
     return TRUE;
 }
+# endif
 #endif // FEAT_TOOLBAR
 
 #if defined(FEAT_TOOLBAR) || defined(PROTO)
+
+    GtkIconTheme*
+gui_gtk_icon_theme_for_main_window(void)
+{
+    GtkIconTheme* icon_theme;
+# ifdef USE_GTK4
+    GdkDisplay *disp;
+    if (GTK_IS_WIDGET(gui.mainwin))
+	disp = gtk_widget_get_display(gui.mainwin);
+    else
+	disp = gdk_display_get_defaul();
+    icon_theme = gtk_icon_theme_get_for_display(disp);
+# else
+    GdkScreen *screen;
+    if (GTK_IS_WIDGET(gui.mainwin))
+	screen = gtk_widget_get_screen(gui.mainwin);
+    else
+	screen = gdk_screen_get_default();
+    icon_theme = gtk_icon_theme_get_for_screen(screen);
+#endif
+}
 
     void
 gui_gtk_register_stock_icons(void)
@@ -453,14 +493,8 @@ gui_gtk_register_stock_icons(void)
 # else // defined(USE_GRESOURCE)
     const char * const path_prefix = "/org/vim/gui/icon";
 #  if GTK_CHECK_VERSION(3,14,0)
-    GdkScreen    *screen = NULL;
     GtkIconTheme *icon_theme = NULL;
-
-    if (GTK_IS_WIDGET(gui.mainwin))
-	screen = gtk_widget_get_screen(gui.mainwin);
-    else
-	screen = gdk_screen_get_default();
-    icon_theme = gtk_icon_theme_get_for_screen(screen);
+    icon_theme = gui_gtk_icon_theme_for_main_window();
     gtk_icon_theme_add_resource_path(icon_theme, path_prefix);
 #  elif GTK_CHECK_VERSION(3,0,0)
     IconNames *names;
@@ -662,7 +696,9 @@ gui_mch_add_menu(vimmenu_T *menu, int idx)
 
     menu->submenu_id = gtk_menu_new();
 
+#  ifndef USE_GTK4
     gtk_menu_set_accel_group(GTK_MENU(menu->submenu_id), gui.accel_group);
+#  endif 
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu->id), menu->submenu_id);
 
 # if !GTK_CHECK_VERSION(3,4,0)
@@ -783,9 +819,11 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
 		    idx);
 #  endif
 
+#  ifdef USE_GTK4
 	    if (gtk_socket_id != 0)
 		g_signal_connect(G_OBJECT(menu->id), "focus-in-event",
 			G_CALLBACK(toolbar_button_focus_in_event), NULL);
+#  endif
 
 	    CONVERT_TO_UTF8_FREE(text);
 	    CONVERT_TO_UTF8_FREE(tooltip);
@@ -1255,6 +1293,7 @@ gui_mch_browse(int saving,
 # else
     GtkWidget			*fc;
 # endif
+    GError              *fc_error;
 #endif
     char_u		dirbuf[MAXPATHL];
     guint		log_handler;
@@ -1303,7 +1342,11 @@ gui_mch_browse(int saving,
 	    NULL);
 # endif
     gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(fc),
-						       (const gchar *)dirbuf);
+						       (const gchar *)dirbuf
+# ifdef USE_GTK4
+						       , &fc_error
+# endif
+						       );
 
     if (filter != NULL && *filter != NUL)
     {
@@ -1643,25 +1686,6 @@ dialog_add_buttons(GtkDialog *dialog, char_u *button_string)
     if (button_string == NULL)
 	return;
 
-    // Check 'v' flag in 'guioptions': vertical button placement.
-    if (vim_strchr(p_go, GO_VERTICAL) != NULL)
-    {
-# if GTK_CHECK_VERSION(3,0,0)
-	// Add GTK+ 3 code if necessary.
-	// N.B. GTK+ 3 doesn't allow you to access vbox and action_area via
-	// the C API.
-# else
-	GtkWidget	*vbutton_box;
-
-	vbutton_box = gtk_vbutton_box_new();
-	gtk_widget_show(vbutton_box);
-	gtk_box_pack_end(GTK_BOX(GTK_DIALOG(dialog)->vbox),
-						 vbutton_box, TRUE, FALSE, 0);
-	// Overrule the "action_area" value, hopefully this works...
-	GTK_DIALOG(dialog)->action_area = vbutton_box;
-# endif
-    }
-
     /*
      * Yes this is ugly, I don't particularly like it either.  But doing it
      * this way has the compelling advantage that translations need not to
@@ -1743,29 +1767,40 @@ typedef struct _DialogInfo
 } DialogInfo;
 
     static gboolean
+#ifdef USE_GTK4
+dialog_key_press_event_cb(GtkWidget *widget, GdkEvent *event, gpointer data)
+#else
 dialog_key_press_event_cb(GtkWidget *widget, GdkEventKey *event, gpointer data)
+#endif
 {
     DialogInfo *di = (DialogInfo *)data;
+    guint keyval = gdk_key_event_get_keyval(event);
+    GdkModifierType state;
+#ifdef USE_GTK4
+    state = gdk_event_get_modifier_state(event);
+#else
+    if (gdk_event_get_state(event, &state) == FALSE) {
+	return FALSE;
+    }
+#endif
 
     // Ignore hitting Enter (or Space) when there is no default button.
-    if (di->ignore_enter && (event->keyval == GDK_Return
-						     || event->keyval == ' '))
+    if (di->ignore_enter && (keyval == GDK_KEY_Return || keyval == ' '))
 	return TRUE;
     else    // A different key was pressed, return to normal behavior
 	di->ignore_enter = FALSE;
 
     // Close the dialog when hitting "Esc".
-    if (event->keyval == GDK_Escape)
+    if (keyval == GDK_KEY_Escape)
     {
 	gtk_dialog_response(di->dialog, GTK_RESPONSE_REJECT);
 	return TRUE;
     }
 
-    if (di->noalt
-	      && (event->state & gtk_accelerator_get_default_mod_mask()) == 0)
+    if (di->noalt && (state & gtk_accelerator_get_default_mod_mask()) == 0)
     {
 	return gtk_window_mnemonic_activate(
-		   GTK_WINDOW(widget), event->keyval,
+		   GTK_WINDOW(widget), keyval,
 		   gtk_window_get_mnemonic_modifier(GTK_WINDOW(widget)));
     }
 
@@ -1785,6 +1820,7 @@ gui_mch_dialog(int	type,	    // type of dialog
     GtkWidget	*entry = NULL;
     char_u	*text;
     int		response;
+    GtkWidget	*alignment;
     DialogInfo  dialoginfo;
 
     dialog = create_message_dialog(type, title, message);
@@ -1793,10 +1829,10 @@ gui_mch_dialog(int	type,	    // type of dialog
 
     if (textfield != NULL)
     {
-	GtkWidget *alignment;
+	GtkWidget *button_container;
 
 	entry = gtk_entry_new();
-	gtk_widget_show(entry);
+	gtk_widget_set_visible(entry, TRUE);
 
 	// Make Enter work like pressing OK.
 	gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
@@ -1805,7 +1841,7 @@ gui_mch_dialog(int	type,	    // type of dialog
 	gtk_entry_set_text(GTK_ENTRY(entry), (const char *)text);
 	CONVERT_TO_UTF8_FREE(text);
 
-# if GTK_CHECK_VERSION(3,14,0)
+# if GTK_CHECK_VERSION(3,0,0)
 	gtk_widget_set_halign(GTK_WIDGET(entry), GTK_ALIGN_CENTER);
 	gtk_widget_set_valign(GTK_WIDGET(entry), GTK_ALIGN_CENTER);
 	gtk_widget_set_hexpand(GTK_WIDGET(entry), TRUE);
@@ -1816,16 +1852,14 @@ gui_mch_dialog(int	type,	    // type of dialog
 	alignment = gtk_alignment_new((float)0.5, (float)0.5,
 						      (float)1.0, (float)1.0);
 # endif
-	gtk_container_add(GTK_CONTAINER(alignment), entry);
-	gtk_container_set_border_width(GTK_CONTAINER(alignment), 5);
-	gtk_widget_show(alignment);
+	gtk_box_append(alignment, entry);
+	gtk_widget_set_visible(alignment, TRUE);
 
 # if GTK_CHECK_VERSION(3,0,0)
 	{
 	    GtkWidget * const vbox
 		= gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-	    gtk_box_pack_start(GTK_BOX(vbox),
-		    alignment, TRUE, FALSE, 0);
+	    gtk_box_prepend(GTK_BOX(vbox), alignment);
 	}
 # else
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox),
@@ -1920,6 +1954,7 @@ gui_mch_show_popupmenu(vimmenu_T *menu)
 
 # if GTK_CHECK_VERSION(3,22,2)
     {
+	// TODO GTK4: We cannot trigger events
 	GdkEventButton trigger;
 
 	// A pseudo event to have gtk_menu_popup_at_pointer() work. Since the
@@ -2067,11 +2102,53 @@ typedef struct _SharedFindReplace
     GtkWidget *find;	// 'Find Next' action button
     GtkWidget *replace;	// 'Replace With' action button
     GtkWidget *all;	// 'Replace All' action button
+#ifdef USE_GTK4
+    GtkEventControllerKey *key_events
+#endif
 } SharedFindReplace;
 
-static SharedFindReplace find_widgets = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-static SharedFindReplace repl_widgets = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+static SharedFindReplace find_widgets = {
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+#ifdef USE_GTK4
+    , NULL
+#endif
+};
+static SharedFindReplace repl_widgets = {
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+#ifdef USE_GTK4
+    , NULL
+#endif
+};
 
+#ifdef USE_GTK4
+    static int
+find_key_press_event(
+    GtkEventControllerKey *events,
+    guint                 keyval,
+    gint                  keycode,
+    GdkModifierType       state,
+    SharedFindReplace     *frdp
+)
+{
+    // If the user is holding one of the key modifiers we will just bail out,
+    // thus preserving the possibility of normal focus traversal.
+    if (state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK))
+	return FALSE;
+
+    // the Escape key synthesizes a cancellation action
+    if (keyval == GDK_KEY_Escape)
+    {
+	gtk_widget_set_visible(frdp->dialog, FALSE);
+
+	return TRUE;
+    }
+
+    // It would be delightful if it where possible to do search history
+    // operations on the K_UP and K_DOWN keys here.
+
+    return FALSE;
+}
+#else
     static int
 find_key_press_event(
 		GtkWidget	*widget UNUSED,
@@ -2084,7 +2161,7 @@ find_key_press_event(
 	return FALSE;
 
     // the Escape key synthesizes a cancellation action
-    if (event->keyval == GDK_Escape)
+    if (event->keyval == GDK_KEY_Escape)
     {
 	gtk_widget_hide(frdp->dialog);
 
@@ -2096,6 +2173,7 @@ find_key_press_event(
 
     return FALSE;
 }
+#endif
 
     static GtkWidget *
 #if GTK_CHECK_VERSION(3,10,0)
@@ -2197,6 +2275,30 @@ entry_get_text_length(GtkEntry *entry)
 #endif
 }
 
+#ifdef USE_GTK4
+    gboolean
+gui_gtk_widget_hide(GtkWidget *widget)
+{
+    gtk_widget_set_visible(widget, FALSE);
+    return TRUE;
+}
+#endif
+
+    static void
+add_button_to_dialog(
+    GtkWidget *area,
+    GtkWidget *button,
+    gboolean  sensitive
+)
+{
+    gtk_widget_set_sensitive(button, sensitive);
+#ifdef USE_GTK4
+    gtk_box_prepend(GTK_BOX(area), button);
+#else
+    gtk_box_pack_start(GTK_BOX(area), button FALSE, FALSE, 0);
+#endif
+}
+
     static void
 find_replace_dialog_create(char_u *arg, int do_replace)
 {
@@ -2252,6 +2354,10 @@ find_replace_dialog_create(char_u *arg, int do_replace)
     }
 
     frdp->dialog = gtk_dialog_new();
+#ifdef USE_GTK4
+    frdp->key_events = gtk_event_controller_key_new();
+#endif
+
 #if GTK_CHECK_VERSION(3,0,0)
     // Nothing equivalent to gtk_dialog_set_has_separator() in GTK+ 3.
 #else
@@ -2277,12 +2383,16 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 #else
     hbox = gtk_hbox_new(FALSE, 0);
 #endif
+#ifdef USE_GTK4
+    // TODO: The border width is supposed to be set via CSS in GTK4
+#else
     gtk_container_set_border_width(GTK_CONTAINER(hbox), 10);
+#endif
 #if GTK_CHECK_VERSION(3,0,0)
     {
 	GtkWidget * const dialog_vbox
 	    = gtk_dialog_get_content_area(GTK_DIALOG(frdp->dialog));
-	gtk_container_add(GTK_CONTAINER(dialog_vbox), hbox);
+	gtk_box_append(GTK_BOX(dialog_vbox), hbox);
     }
 #else
     gtk_container_add(GTK_CONTAINER(GTK_DIALOG(frdp->dialog)->vbox), hbox);
@@ -2300,8 +2410,13 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 #else
 	table = gtk_table_new(1024, 3, FALSE);
 #endif
-    gtk_box_pack_start(GTK_BOX(hbox), table, TRUE, TRUE, 0);
+    gtk_widget_set_hexpand(table, TRUE);
+    gtk_box_prepend(GTK_BOX(hbox), table);
+#ifdef USE_GTK4
+    // TODO: The border width is supposed to be set via CSS in GTK4
+#else
     gtk_container_set_border_width(GTK_CONTAINER(table), 4);
+#endif
 
     tmp = gtk_label_new(CONV(_("Find what:")));
 #if GTK_CHECK_VERSION(3,16,0)
@@ -2336,9 +2451,15 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 	gtk_entry_set_text(GTK_ENTRY(frdp->what), (char *)entry_text);
     g_signal_connect(G_OBJECT(frdp->what), "changed",
 		     G_CALLBACK(entry_changed_cb), frdp->dialog);
+#ifdef USE_GTK4
+    g_signal_connect(G_OBJECT(frdp->key_events), "key-pressed",
+	             G_CALLBACK(find_key_press_event),
+		     (gpointer) frdp);
+#else
     g_signal_connect_after(G_OBJECT(frdp->what), "key-press-event",
 			   G_CALLBACK(find_key_press_event),
 			   (gpointer) frdp);
+#endif
 #if GTK_CHECK_VERSION(3,4,0)
     gtk_grid_attach(GTK_GRID(table), frdp->what, 2, 0, 5, 1);
 #else
@@ -2500,8 +2621,7 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 		     (do_replace) ? GINT_TO_POINTER(FRD_R_FINDNEXT)
 				  : GINT_TO_POINTER(FRD_FINDNEXT));
 
-    gtk_widget_set_can_default(frdp->find, TRUE);
-    gtk_box_pack_start(GTK_BOX(actionarea), frdp->find, FALSE, FALSE, 0);
+    add_button_to_dialog(actionarea, frdp->find, FALSE);
     gtk_widget_grab_default(frdp->find);
 
     if (do_replace)
@@ -2512,9 +2632,8 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 #else
 	frdp->replace = create_image_button(GTK_STOCK_CONVERT, _("Replace"));
 #endif
-	gtk_widget_set_sensitive(frdp->replace, sensitive);
+	add_button_to_dialog(actionarea, frdp->replace, sensitive);
 	gtk_widget_set_can_default(frdp->find, TRUE);
-	gtk_box_pack_start(GTK_BOX(actionarea), frdp->replace, FALSE, FALSE, 0);
 	g_signal_connect(G_OBJECT(frdp->replace), "clicked",
 			 G_CALLBACK(find_replace_cb),
 			 GINT_TO_POINTER(FRD_REPLACE));
@@ -2525,9 +2644,12 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 #else
 	frdp->all = create_image_button(GTK_STOCK_CONVERT, _("Replace All"));
 #endif
-	gtk_widget_set_sensitive(frdp->all, sensitive);
+	add_button_to_dialog(actionarea, frdp->all, sensitive);
+#ifndef USE_GTK4
+	// This is supposed to be replaced by gtk_window_set_default_widget
+	// once we stop using gtk_dialog_new (which was deprecated in 4.10)
 	gtk_widget_set_can_default(frdp->all, TRUE);
-	gtk_box_pack_start(GTK_BOX(actionarea), frdp->all, FALSE, FALSE, 0);
+#endif
 	g_signal_connect(G_OBJECT(frdp->all), "clicked",
 			 G_CALLBACK(find_replace_cb),
 			 GINT_TO_POINTER(FRD_REPLACEALL));
@@ -2544,24 +2666,29 @@ find_replace_dialog_create(char_u *arg, int do_replace)
     g_signal_connect_swapped(G_OBJECT(tmp),
 			     "clicked", G_CALLBACK(gtk_widget_hide),
 			     G_OBJECT(frdp->dialog));
+#ifdef USE_GTK4
+    g_signal_connect(G_OBJECT(frdp->dialog),
+	    "close-request", G_CALLBACK(gui_gtk_widget_hide), G_OBJECT(frdp->dialog));
+#else
     g_signal_connect_swapped(G_OBJECT(frdp->dialog),
 			     "delete-event", G_CALLBACK(gtk_widget_hide_on_delete),
 			     G_OBJECT(frdp->dialog));
+#endif
 
 #if GTK_CHECK_VERSION(3,2,0)
     tmp = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
 #else
     tmp = gtk_vseparator_new();
 #endif
-    gtk_box_pack_end(GTK_BOX(hbox), tmp, FALSE, FALSE, 10);
+    gtk_box_append(GTK_BOX(hbox), tmp);
 
     // Suppress automatic show of the unused action area
 #if GTK_CHECK_VERSION(3,0,0)
 # if !GTK_CHECK_VERSION(3,12,0)
-    gtk_widget_hide(gtk_dialog_get_action_area(GTK_DIALOG(frdp->dialog)));
+    gtk_widget_set_visible(gtk_dialog_get_action_area(GTK_DIALOG(frdp->dialog)), FALSE);
 # endif
 #else
-    gtk_widget_hide(GTK_DIALOG(frdp->dialog)->action_area);
+    gtk_widget_set_visible(GTK_DIALOG(frdp->dialog)->action_area, FALSE);
 #endif
     gtk_widget_show_all(hbox);
     gtk_widget_show(frdp->dialog);

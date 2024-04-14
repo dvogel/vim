@@ -12,7 +12,11 @@ void xim_init(void);
 void im_shutdown(void);
 int im_xim_isvalid_imactivate(void);
 void xim_reset(void);
+#ifdef USE_GTK4
+int xim_queue_key_press_event(GdkEvent *event, int down);
+#else
 int xim_queue_key_press_event(GdkEventKey *event, int down);
+#endif
 int im_get_status(void);
 int preedit_get_status(void);
 int im_is_preediting(void);

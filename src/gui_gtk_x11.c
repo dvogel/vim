@@ -79,7 +79,9 @@ extern void bonobo_dock_item_set_behavior(BonoboDockItem *dock_item, BonoboDockI
 # define GdkEventConfigure int
 # define GdkEventClient int
 #else
-# if GTK_CHECK_VERSION(3,0,0)
+# if GTK_CHECK_VERSION(4,0,0)
+#  include <gdk/gdkkeysyms.h>
+# elif GTK_CHECK_VERSION(3,0,0)
 #  include <gdk/gdkkeysyms-compat.h>
 #  include <gtk/gtkx.h>
 # else
@@ -88,6 +90,8 @@ extern void bonobo_dock_item_set_behavior(BonoboDockItem *dock_item, BonoboDockI
 # include <gdk/gdk.h>
 # ifdef MSWIN
 #  include <gdk/gdkwin32.h>
+# elif GTK_CHECK_VERSION(4,0,0)
+#  include <gdk/gdk.h>
 # else
 #  include <gdk/gdkx.h>
 # endif
@@ -99,10 +103,21 @@ extern void bonobo_dock_item_set_behavior(BonoboDockItem *dock_item, BonoboDockI
 # include <X11/Sunkeysym.h>
 #endif
 
+
+#if GTK_CHECK_VERSION(4,0,0)
+static const char *receivable_mime_types[] =
+{
+    "text/html",
+    "text/plain;charset=utf8",
+    "text/plain",
+    NULL
+};
+
+#else
 /*
  * Easy-to-use macro for multihead support.
  */
-#define GET_X_ATOM(atom)	gdk_x11_atom_to_xatom_for_display( \
+# define GET_X_ATOM(atom)	gdk_x11_atom_to_xatom_for_display( \
 				    gtk_widget_get_display(gui.mainwin), atom)
 
 // Selection type distinguishers
@@ -137,7 +152,8 @@ static const GtkTargetEntry selection_targets[] =
     {"text/plain;charset=utf-8", 0, TARGET_TEXT_PLAIN_UTF8},
     {"text/plain",	0, TARGET_TEXT_PLAIN}
 };
-#define N_SELECTION_TARGETS ARRAY_LENGTH(selection_targets)
+# define N_SELECTION_TARGETS ARRAY_LENGTH(selection_targets)
+#endif // GTK_CHECK_VERSION(4,0,0)
 
 #ifdef FEAT_DND
 /*
@@ -166,7 +182,7 @@ static const GtkTargetEntry dnd_targets[] =
 # define USE_GNOME_SESSION
 #endif
 
-#if !defined(FEAT_GUI_GNOME)
+#if !defined(FEAT_GUI_GNOME) && !defined(USE_GTK4)
 /*
  * Atoms used to communicate save-yourself from the X11 session manager. There
  * is no need to move them into the GUI struct, since they should be constant.
@@ -175,6 +191,8 @@ static GdkAtom wm_protocols_atom = GDK_NONE;
 static GdkAtom save_yourself_atom = GDK_NONE;
 #endif
 
+
+#ifndef USE_GTK4
 /*
  * Atoms used to control/reference X11 selections.
  */
@@ -182,6 +200,7 @@ static GdkAtom html_atom = GDK_NONE;
 static GdkAtom utf8_string_atom = GDK_NONE;
 static GdkAtom vim_atom = GDK_NONE;	// Vim's own special selection format
 static GdkAtom vimenc_atom = GDK_NONE;	// Vim's extended selection format
+#endif
 
 /*
  * Keycodes recognized by vim.
@@ -196,91 +215,91 @@ static struct special_key
 }
 const special_keys[] =
 {
-    {GDK_Up,		'k', 'u'},
-    {GDK_Down,		'k', 'd'},
-    {GDK_Left,		'k', 'l'},
-    {GDK_Right,		'k', 'r'},
-    {GDK_F1,		'k', '1'},
-    {GDK_F2,		'k', '2'},
-    {GDK_F3,		'k', '3'},
-    {GDK_F4,		'k', '4'},
-    {GDK_F5,		'k', '5'},
-    {GDK_F6,		'k', '6'},
-    {GDK_F7,		'k', '7'},
-    {GDK_F8,		'k', '8'},
-    {GDK_F9,		'k', '9'},
-    {GDK_F10,		'k', ';'},
-    {GDK_F11,		'F', '1'},
-    {GDK_F12,		'F', '2'},
-    {GDK_F13,		'F', '3'},
-    {GDK_F14,		'F', '4'},
-    {GDK_F15,		'F', '5'},
-    {GDK_F16,		'F', '6'},
-    {GDK_F17,		'F', '7'},
-    {GDK_F18,		'F', '8'},
-    {GDK_F19,		'F', '9'},
-    {GDK_F20,		'F', 'A'},
-    {GDK_F21,		'F', 'B'},
-    {GDK_Pause,		'F', 'B'}, // Pause == F21 according to netbeans.txt
-    {GDK_F22,		'F', 'C'},
-    {GDK_F23,		'F', 'D'},
-    {GDK_F24,		'F', 'E'},
-    {GDK_F25,		'F', 'F'},
-    {GDK_F26,		'F', 'G'},
-    {GDK_F27,		'F', 'H'},
-    {GDK_F28,		'F', 'I'},
-    {GDK_F29,		'F', 'J'},
-    {GDK_F30,		'F', 'K'},
-    {GDK_F31,		'F', 'L'},
-    {GDK_F32,		'F', 'M'},
-    {GDK_F33,		'F', 'N'},
-    {GDK_F34,		'F', 'O'},
-    {GDK_F35,		'F', 'P'},
+    {GDK_KEY_Up,		'k', 'u'},
+    {GDK_KEY_Down,		'k', 'd'},
+    {GDK_KEY_Left,		'k', 'l'},
+    {GDK_KEY_Right,		'k', 'r'},
+    {GDK_KEY_F1,		'k', '1'},
+    {GDK_KEY_F2,		'k', '2'},
+    {GDK_KEY_F3,		'k', '3'},
+    {GDK_KEY_F4,		'k', '4'},
+    {GDK_KEY_F5,		'k', '5'},
+    {GDK_KEY_F6,		'k', '6'},
+    {GDK_KEY_F7,		'k', '7'},
+    {GDK_KEY_F8,		'k', '8'},
+    {GDK_KEY_F9,		'k', '9'},
+    {GDK_KEY_F10,		'k', ';'},
+    {GDK_KEY_F11,		'F', '1'},
+    {GDK_KEY_F12,		'F', '2'},
+    {GDK_KEY_F13,		'F', '3'},
+    {GDK_KEY_F14,		'F', '4'},
+    {GDK_KEY_F15,		'F', '5'},
+    {GDK_KEY_F16,		'F', '6'},
+    {GDK_KEY_F17,		'F', '7'},
+    {GDK_KEY_F18,		'F', '8'},
+    {GDK_KEY_F19,		'F', '9'},
+    {GDK_KEY_F20,		'F', 'A'},
+    {GDK_KEY_F21,		'F', 'B'},
+    {GDK_KEY_Pause,		'F', 'B'}, // Pause == F21 according to netbeans.txt
+    {GDK_KEY_F22,		'F', 'C'},
+    {GDK_KEY_F23,		'F', 'D'},
+    {GDK_KEY_F24,		'F', 'E'},
+    {GDK_KEY_F25,		'F', 'F'},
+    {GDK_KEY_F26,		'F', 'G'},
+    {GDK_KEY_F27,		'F', 'H'},
+    {GDK_KEY_F28,		'F', 'I'},
+    {GDK_KEY_F29,		'F', 'J'},
+    {GDK_KEY_F30,		'F', 'K'},
+    {GDK_KEY_F31,		'F', 'L'},
+    {GDK_KEY_F32,		'F', 'M'},
+    {GDK_KEY_F33,		'F', 'N'},
+    {GDK_KEY_F34,		'F', 'O'},
+    {GDK_KEY_F35,		'F', 'P'},
 #ifdef SunXK_F36
-    {SunXK_F36,		'F', 'Q'},
-    {SunXK_F37,		'F', 'R'},
+    {SunXK_F36,			'F', 'Q'},
+    {SunXK_F37,			'F', 'R'},
 #endif
-    {GDK_Help,		'%', '1'},
-    {GDK_Undo,		'&', '8'},
-    {GDK_BackSpace,	'k', 'b'},
-    {GDK_Insert,	'k', 'I'},
-    {GDK_Delete,	'k', 'D'},
-    {GDK_3270_BackTab,	'k', 'B'},
-    {GDK_Clear,		'k', 'C'},
-    {GDK_Home,		'k', 'h'},
-    {GDK_End,		'@', '7'},
-    {GDK_Prior,		'k', 'P'},
-    {GDK_Next,		'k', 'N'},
-    {GDK_Print,		'%', '9'},
+    {GDK_KEY_Help,		'%', '1'},
+    {GDK_KEY_Undo,		'&', '8'},
+    {GDK_KEY_BackSpace,		'k', 'b'},
+    {GDK_KEY_Insert,		'k', 'I'},
+    {GDK_KEY_Delete,		'k', 'D'},
+    {GDK_KEY_3270_BackTab,	'k', 'B'},
+    {GDK_KEY_Clear,		'k', 'C'},
+    {GDK_KEY_Home,		'k', 'h'},
+    {GDK_KEY_End,		'@', '7'},
+    {GDK_KEY_Prior,		'k', 'P'},
+    {GDK_KEY_Next,		'k', 'N'},
+    {GDK_KEY_Print,		'%', '9'},
     // Keypad keys:
-    {GDK_KP_Left,	'k', 'l'},
-    {GDK_KP_Right,	'k', 'r'},
-    {GDK_KP_Up,		'k', 'u'},
-    {GDK_KP_Down,	'k', 'd'},
-    {GDK_KP_Insert,	KS_EXTRA, (char_u)KE_KINS},
-    {GDK_KP_Delete,	KS_EXTRA, (char_u)KE_KDEL},
-    {GDK_KP_Home,	'K', '1'},
-    {GDK_KP_End,	'K', '4'},
-    {GDK_KP_Prior,	'K', '3'},  // page up
-    {GDK_KP_Next,	'K', '5'},  // page down
+    {GDK_KEY_KP_Left,		'k', 'l'},
+    {GDK_KEY_KP_Right,		'k', 'r'},
+    {GDK_KEY_KP_Up,		'k', 'u'},
+    {GDK_KEY_KP_Down,		'k', 'd'},
+    {GDK_KEY_KP_Insert,	KS_EXTRA, (char_u)KE_KINS},
+    {GDK_KEY_KP_Delete,	KS_EXTRA, (char_u)KE_KDEL},
+    {GDK_KEY_KP_Home,		'K', '1'},
+    {GDK_KEY_KP_End,		'K', '4'},
+    {GDK_KEY_KP_Prior,		'K', '3'},  // page up
+    {GDK_KEY_KP_Next,		'K', '5'},  // page down
 
-    {GDK_KP_Add,	'K', '6'},
-    {GDK_KP_Subtract,	'K', '7'},
-    {GDK_KP_Divide,	'K', '8'},
-    {GDK_KP_Multiply,	'K', '9'},
-    {GDK_KP_Enter,	'K', 'A'},
-    {GDK_KP_Decimal,	'K', 'B'},
+    {GDK_KEY_KP_Add,		'K', '6'},
+    {GDK_KEY_KP_Subtract,	'K', '7'},
+    {GDK_KEY_KP_Divide,		'K', '8'},
+    {GDK_KEY_KP_Multiply,	'K', '9'},
+    {GDK_KEY_KP_Enter,		'K', 'A'},
+    {GDK_KEY_KP_Decimal,	'K', 'B'},
 
-    {GDK_KP_0,		'K', 'C'},
-    {GDK_KP_1,		'K', 'D'},
-    {GDK_KP_2,		'K', 'E'},
-    {GDK_KP_3,		'K', 'F'},
-    {GDK_KP_4,		'K', 'G'},
-    {GDK_KP_5,		'K', 'H'},
-    {GDK_KP_6,		'K', 'I'},
-    {GDK_KP_7,		'K', 'J'},
-    {GDK_KP_8,		'K', 'K'},
-    {GDK_KP_9,		'K', 'L'},
+    {GDK_KEY_KP_0,		'K', 'C'},
+    {GDK_KEY_KP_1,		'K', 'D'},
+    {GDK_KEY_KP_2,		'K', 'E'},
+    {GDK_KEY_KP_3,		'K', 'F'},
+    {GDK_KEY_KP_4,		'K', 'G'},
+    {GDK_KEY_KP_5,		'K', 'H'},
+    {GDK_KEY_KP_6,		'K', 'I'},
+    {GDK_KEY_KP_7,		'K', 'J'},
+    {GDK_KEY_KP_8,		'K', 'K'},
+    {GDK_KEY_KP_9,		'K', 'L'},
 
     // End of list marker:
     {0, 0, 0}
@@ -379,6 +398,7 @@ static const cmdline_option_T cmdline_options[] =
 #endif
     {NULL, 0}
 };
+
 
 static int    gui_argc = 0;
 static char **gui_argv = NULL;
@@ -754,10 +774,39 @@ visibility_event(GtkWidget *widget UNUSED,
 }
 #endif // !GTK_CHECK_VERSION(3,0,0)
 
+#if GTK_CHECK_VERSION(4,0,0)
+    GdkSurface *
+gui_gtk_widget_get_containing_surface(GtkWidget *widget)
+{
+    GtkNative *n;
+    GdkSurface *s;
+    
+    n = gtk_widget_get_native(widget);
+    if (n == NULL)
+	return NULL; // should not really happen
+
+    s = gtk_native_get_surface(n);
+    if (s == NULL)
+	return NULL;
+    
+    return s;
+}
+#endif
+
+
+#if GTK_CHECK_VERSION(4,0,0)
+    static void
+draw_cb(GtkDrawingArea *area,
+	cairo_t        *cr,
+	int            width,
+	int            height,
+	gpointer       data)
+{
+}
+#elif GTK_CHECK_VERSION(3,0,0)
 /*
  * Redraw the corresponding portions of the screen.
  */
-#if GTK_CHECK_VERSION(3,0,0)
     static gboolean
 draw_event(GtkWidget *widget UNUSED,
 	   cairo_t   *cr,
@@ -793,8 +842,9 @@ draw_event(GtkWidget *widget UNUSED,
 
     return FALSE;
 }
+#endif
 
-# if GTK_CHECK_VERSION(3,10,0)
+#if GTK_CHECK_VERSION(3,10,0)
     static gboolean
 scale_factor_event(GtkWidget *widget,
 	           GParamSpec* pspec UNUSED,
@@ -805,10 +855,17 @@ scale_factor_event(GtkWidget *widget,
 
     int	    w, h;
     gtk_window_get_size(GTK_WINDOW(gui.mainwin), &w, &h);
+# if GTK_CHECK_VERSION(4,0,0)
+    GdkSurface *s = gui_gtk_widget_get_containing_surface(widget);
+    gui.surface = gdk_surface_create_similar_surface(s,
+	                                             cairo_surface_get_content(s),
+						     w, h);
+# else
     gui.surface = gdk_window_create_similar_surface(
 	    gtk_widget_get_window(widget),
 	    CAIRO_CONTENT_COLOR_ALPHA,
 	    w, h);
+# endif
 
     int	    usable_height = h;
     if (gtk_socket_id != 0)
@@ -821,8 +878,6 @@ scale_factor_event(GtkWidget *widget,
 
     return TRUE;
 }
-# endif // GTK_CHECK_VERSION(3,10,0)
-
 #else // !GTK_CHECK_VERSION(3,0,0)
     static gint
 expose_event(GtkWidget *widget UNUSED,
@@ -1118,16 +1173,16 @@ keyval_to_string(unsigned int keyval, char_u *string)
 	len = 1;
 	switch (keyval)
 	{
-	    case GDK_Tab: case GDK_KP_Tab: case GDK_ISO_Left_Tab:
+	    case GDK_KEY_Tab: case GDK_KEY_KP_Tab: case GDK_KEY_ISO_Left_Tab:
 		string[0] = TAB;
 		break;
-	    case GDK_Linefeed:
+	    case GDK_KEY_Linefeed:
 		string[0] = NL;
 		break;
-	    case GDK_Return: case GDK_ISO_Enter: case GDK_3270_Enter:
+	    case GDK_KEY_Return: case GDK_KEY_ISO_Enter: case GDK_KEY_3270_Enter:
 		string[0] = CAR;
 		break;
-	    case GDK_Escape:
+	    case GDK_KEY_Escape:
 		string[0] = ESC;
 		break;
 	    default:
@@ -1149,8 +1204,13 @@ modifiers_gdk2vim(guint state)
 	modifiers |= MOD_MASK_SHIFT;
     if (state & GDK_CONTROL_MASK)
 	modifiers |= MOD_MASK_CTRL;
+#if GTK_CHECK_VERSION(4,0,0)
+    if (state & GDK_ALT_MASK)
+	modifiers |= MOD_MASK_ALT;
+#else
     if (state & GDK_MOD1_MASK)
 	modifiers |= MOD_MASK_ALT;
+#endif
 #if GTK_CHECK_VERSION(2,10,0)
     if (state & GDK_META_MASK)
 	modifiers |= MOD_MASK_META;
@@ -1173,12 +1233,21 @@ modifiers_gdk2mouse(guint state)
 	modifiers |= MOUSE_SHIFT;
     if (state & GDK_CONTROL_MASK)
 	modifiers |= MOUSE_CTRL;
+#if GTK_CHECK_VERSION(4,0,0)
+    if (state & GDK_ALT_MASK)
+	modifiers |= MOUSE_ALT;
+#else
     if (state & GDK_MOD1_MASK)
 	modifiers |= MOUSE_ALT;
+#endif
 
     return modifiers;
 }
 
+
+#if GTK_CHECK_VERSION(4,0,0)
+// TODO: Define a GTK4 event controller callback
+#else
 /*
  * Main keyboard handler:
  */
@@ -1375,6 +1444,7 @@ key_press_event(GtkWidget *widget UNUSED,
 
     return TRUE;
 }
+#endif
 
 #if defined(FEAT_XIM) || GTK_CHECK_VERSION(3,0,0)
     static gboolean
@@ -1404,6 +1474,8 @@ key_release_event(GtkWidget *widget UNUSED,
 // gtk_selection_owner_set() then.
 static int in_selection_clear_event = FALSE;
 
+#ifndef USE_GTK4
+// TODO: What to do for GTK4?
     static gint
 selection_clear_event(GtkWidget		*widget UNUSED,
 		      GdkEventSelection	*event,
@@ -1418,12 +1490,45 @@ selection_clear_event(GtkWidget		*widget UNUSED,
 
     return TRUE;
 }
+#endif
 
 #define RS_NONE	0	// selection_received_cb() not called yet
 #define RS_OK	1	// selection_received_cb() called and OK
 #define RS_FAIL	2	// selection_received_cb() called and failed
 static int received_selection = RS_NONE;
 
+
+#ifdef GTK_CHECK_VERSION(4,0,0)
+    // void
+// selection_received_cb(GObject       *source_object,
+	              // GAsyncResult  *res,
+		      // gpointer      data)
+// {
+    // GError        *err = NULL;
+    // char          *selection_text;
+    // const char    *mime_type = NULL;
+    // GtkClipboard  *cbd;
+    // GdkDisplay    *disp;
+
+    // disp = gtk_widget_get_display(gui.mainwin);
+    // cbd = gdk_display_get_clipboard(disp);
+    // selected_text_stream = gdk_clipboard_read_finish(
+	    // gui.clipboard,
+	    // res,
+	    // &mime_type,
+	    // &err
+	    // );
+    // if (err != null)
+    // {
+	// emsg(err->message);
+	// g_free(err);
+	// return;
+    // }
+
+    // gio_input_stream_read_all(selected_text_stream,
+	                      
+// }
+#else
     static void
 selection_received_cb(GtkWidget		*widget UNUSED,
 		      GtkSelectionData	*data,
@@ -1529,6 +1634,7 @@ selection_received_cb(GtkWidget		*widget UNUSED,
     vim_free(tmpbuf);
     g_free(tmpbuf_utf8);
 }
+#endif
 
 /*
  * Prepare our selection data for passing it to the external selection
@@ -1738,7 +1844,7 @@ gui_mch_init_check(void)
     //
     // Use an environment variable to enable unfinished Wayland support.
     if (getenv("GVIM_ENABLE_WAYLAND") == NULL)
-	gdk_set_allowed_backends ("x11");
+	gdk_set_allowed_backends("x11");
 #endif
 
 #ifdef FEAT_GUI_GNOME
@@ -1752,7 +1858,11 @@ gui_mch_init_check(void)
     g_set_prgname("gvim");
 
     // Don't use gtk_init() or gnome_init(), it exits on failure.
-    if (!gtk_init_check(&gui_argc, &gui_argv))
+    if (!gtk_init_check(
+#if !GTK_CHECK_VERSION(4,0,0)
+		&gui_argc, &gui_argv
+#endif
+		))
     {
 	gui.dying = TRUE;
 	emsg(_((char *)e_cannot_open_display));
@@ -1869,8 +1979,13 @@ process_motion_notify(int x, int y, GdkModifierType state)
     static GdkDevice *
 gui_gtk_get_pointer_device(GtkWidget *widget)
 {
+# if GTK_CHECK_VERSION(4,0,0)
+    GdkSurface * const s = gui_gtk_widget_get_containing_surface(widget);
+    GdkDisplay * const dpy = gdk_surface_get_display(s);
+# else
     GdkWindow * const win = gtk_widget_get_window(widget);
     GdkDisplay * const dpy = gdk_window_get_display(win);
+# endif
 # if GTK_CHECK_VERSION(3,20,0)
     GdkSeat * const seat = gdk_display_get_default_seat(dpy);
     return gdk_seat_get_pointer(seat);
@@ -1880,15 +1995,25 @@ gui_gtk_get_pointer_device(GtkWidget *widget)
 # endif
 }
 
+# if GTK_CHECK_VERSION(4,0,0)
+    static GdkSurface *
+# else
     static GdkWindow *
+# endif
 gui_gtk_get_pointer(GtkWidget       *widget,
 		    gint	    *x,
 		    gint	    *y,
 		    GdkModifierType *state)
 {
+# if GTK_CHECK_VERSION(4,0,0)
+    GdkSurface * const s = gui_gtk_widget_get_containing_surface(widget);
+    GdkDevice * const dev = gui_gtk_get_pointer_device(widget);
+    return gdk_surface_get_device_position(s, dev, x, y, state);
+# else
     GdkWindow * const win = gtk_widget_get_window(widget);
     GdkDevice * const dev = gui_gtk_get_pointer_device(widget);
-    return gdk_window_get_device_position(win, dev , x, y, state);
+    return gdk_window_get_device_position(win, dev, x, y, state);
+# endif
 }
 
 # if defined(FEAT_GUI_TABLINE) || defined(PROTO)
@@ -2652,6 +2777,7 @@ setup_save_yourself(void)
     }
 }
 
+# ifndef USE_GTK4
 /*
  * Installing a global event filter seems to be the only way to catch
  * client messages of type WM_PROTOCOLS without overriding GDK's own
@@ -2695,6 +2821,7 @@ global_event_filter(GdkXEvent *xev,
 
     return GDK_FILTER_CONTINUE;
 }
+# endif // USE_GTK4
 #endif // !USE_GNOME_SESSION
 
 
@@ -2752,7 +2879,7 @@ mainwin_realize(GtkWidget *widget UNUSED, gpointer data UNUSED)
 	g_list_free(icons);
     }
 
-#if !defined(USE_GNOME_SESSION)
+#if !defined(USE_GNOME_SESSION) && !defined(USE_GTK4)
     // Register a handler for WM_SAVE_YOURSELF with GDK's low-level X I/F
     gdk_window_add_filter(NULL, &global_event_filter, NULL);
 #endif
@@ -2792,6 +2919,7 @@ mainwin_realize(GtkWidget *widget UNUSED, gpointer data UNUSED)
 #endif
 }
 
+
     static GdkCursor *
 create_blank_pointer(void)
 {
@@ -2817,6 +2945,7 @@ create_blank_pointer(void)
     return cursor;
 }
 
+#ifndef USE_GTK4
     static void
 mainwin_screen_changed_cb(GtkWidget  *widget,
 			  GdkScreen  *previous_screen UNUSED,
@@ -2857,6 +2986,7 @@ mainwin_screen_changed_cb(GtkWidget  *widget,
 	gui_set_shellsize(TRUE, FALSE, RESIZE_BOTH);
     }
 }
+#endif
 
 /*
  * After the drawing area comes up, we calculate all colors and create the
@@ -2875,7 +3005,13 @@ drawarea_realize_cb(GtkWidget *widget, gpointer data UNUSED)
     xim_init();
 #endif
     gui_mch_new_colors();
-#if GTK_CHECK_VERSION(3,0,0)
+#if GTK_CHECK_VERSION(4,0,0)
+    GdkSurface *s = gui_gtk_widget_get_containing_surface(widget);
+    gui.surface = gdk_surface_create_similar_surface(s,
+						     cairo_surface_get_content(s),
+						     gtk_widget_get_allocated_width(widget),
+						     gtk_widget_get_allocated_height(widget));
+#elif GTK_CHECK_VERSION(3,0,0)
     gui.surface = gdk_window_create_similar_surface(
 	    gtk_widget_get_window(widget),
 	    CAIRO_CONTENT_COLOR_ALPHA,
@@ -2961,7 +3097,25 @@ drawarea_style_set_cb(GtkWidget	*widget UNUSED,
     gui_mch_new_colors();
 }
 
-#if GTK_CHECK_VERSION(3,0,0)
+#if GTK_CHECK_VERSION(4,0,0)
+    static gboolean
+drawarea_reconfigure_cb(GObject *unused1,
+	                GParamSpec *unused2,
+			gpointer unused3)
+{
+    if (gui.surface != NULL)
+	cairo_surface_destroy(gui.surface);
+    GdkSurface *s = gui_gtk_widget_get_containing_surface(gui.drawarea),
+    gui.surface = gdk_surface_create_similar_surface(s,
+						     cairo_surface_get_content(s),
+						     gtk_widget_get_allocated_width(widget),
+						     gtk_widget_get_allocated_height(widget));
+    gtk_widget_queue_draw(widget);
+    return TRUE;
+}
+#else
+
+# if GTK_CHECK_VERSION(3,0,0)
     static gboolean
 drawarea_configure_event_cb(GtkWidget	      *widget,
 			    GdkEventConfigure *event,
@@ -2973,7 +3127,7 @@ drawarea_configure_event_cb(GtkWidget	      *widget,
     g_return_val_if_fail(event
 	    && event->width >= 1 && event->height >= 1, TRUE);
 
-# if GTK_CHECK_VERSION(3,22,2) && !GTK_CHECK_VERSION(3,22,4)
+#  if GTK_CHECK_VERSION(3,22,2) && !GTK_CHECK_VERSION(3,22,4)
     // As of 3.22.2, GdkWindows have started distributing configure events to
     // their "native" children (https://git.gnome.org/browse/gtk+/commit/?h=gtk-3-22&id=12579fe71b3b8f79eb9c1b80e429443bcc437dd0).
     //
@@ -3000,7 +3154,7 @@ drawarea_configure_event_cb(GtkWidget	      *widget,
     // The corresponding official release is 3.22.4.
     if (event->send_event == FALSE)
 	return TRUE;
-# endif
+#  endif
 
     if (event->width == cur_width && event->height == cur_height)
 	return TRUE;
@@ -3020,6 +3174,7 @@ drawarea_configure_event_cb(GtkWidget	      *widget,
 
     return TRUE;
 }
+# endif
 #endif
 
 /*
@@ -3511,8 +3666,8 @@ gui_mch_showing_tabline(void)
 gui_mch_update_tabline(void)
 {
     GtkWidget	    *page;
-    GtkWidget	    *event_box;
-    GtkWidget	    *label;
+    GtkWidget       *label;     // label and tab_label refer to the same widget
+    GtkWidget	    *tab_label; // in GTK4.
     tabpage_T	    *tp;
     int		    nr = 0;
     int		    tab_num;
@@ -3543,17 +3698,13 @@ gui_mch_update_tabline(void)
 	    page = gtk_vbox_new(FALSE, 0);
 # endif
 	    gtk_widget_show(page);
-	    event_box = gtk_event_box_new();
-	    gtk_widget_show(event_box);
-	    label = gtk_label_new("-Empty-");
+	    tab_label = gui_gtk_build_tab_label("-Empty-", page);
 # if !GTK_CHECK_VERSION(3,14,0)
 	    gtk_misc_set_padding(GTK_MISC(label), 2, 2);
 # endif
-	    gtk_container_add(GTK_CONTAINER(event_box), label);
-	    gtk_widget_show(label);
 	    gtk_notebook_insert_page(GTK_NOTEBOOK(gui.tabline),
 		    page,
-		    event_box,
+		    tab_label,
 		    nr++);
 # if GTK_CHECK_VERSION(2,10,0)
 	    gtk_notebook_set_tab_reorderable(GTK_NOTEBOOK(gui.tabline),
@@ -3562,10 +3713,14 @@ gui_mch_update_tabline(void)
 # endif
 	}
 
-	event_box = gtk_notebook_get_tab_label(GTK_NOTEBOOK(gui.tabline), page);
-	g_object_set_data(G_OBJECT(event_box), "tab_num",
+	tab_label = gtk_notebook_get_tab_label(GTK_NOTEBOOK(gui.tabline), page);
+	g_object_set_data(G_OBJECT(tab_label), "tab_num",
 						     GINT_TO_POINTER(tab_num));
-	label = gtk_bin_get_child(GTK_BIN(event_box));
+# ifdef USE_GTK4
+	label = tab_label;
+# else
+	label = gtk_bin_get_child(GTK_BIN(tab_label));
+# endif
 	get_tabline_label(tp, FALSE);
 	labeltext = CONVERT_TO_UTF8(NameBuff);
 	gtk_label_set_text(GTK_LABEL(label), (const char *)labeltext);
@@ -3574,9 +3729,9 @@ gui_mch_update_tabline(void)
 	get_tabline_label(tp, TRUE);
 	labeltext = CONVERT_TO_UTF8(NameBuff);
 # if GTK_CHECK_VERSION(3,0,0)
-	gtk_widget_set_tooltip_text(event_box, (const gchar *)labeltext);
+	gtk_widget_set_tooltip_text(tab_label, (const gchar *)labeltext);
 # else
-	gtk_tooltips_set_tip(GTK_TOOLTIPS(tabline_tooltip), event_box,
+	gtk_tooltips_set_tip(GTK_TOOLTIPS(tabline_tooltip), tab_label,
 			     (const char *)labeltext, NULL);
 # endif
 	CONVERT_TO_UTF8_FREE(labeltext);
@@ -3666,6 +3821,32 @@ gui_gtk_set_dnd_targets(void)
 		      GDK_ACTION_COPY | GDK_ACTION_MOVE);
 }
 
+    GtkWidget *
+gui_gtk_build_tab_label(const char *label_text, GtkWidget *page)
+{
+    // In GTK4 EventBox is not necessary because all widgets receive all
+    // events.
+    GtkWidget *label;
+    GtkWidget *event_box;
+
+    label = gtk_label_new(label_text);
+    gtk_widget_set_visible(label, TRUE);
+#if !GTK_CHECK_VERSION(3,14,0)
+    gtk_misc_set_padding(GTK_MISC(label), 2, 2);
+#endif
+#ifdef USE_GTK4
+    g_object_set_data(G_OBJECT(label), "tab_num", GINT_TO_POINTER(1L));
+    gtk_notebook_set_tab_label(GTK_NOTEBOOK(gui.tabline), page, label);
+#else
+    event_box = gtk_event_box_new();
+    gtk_widget_set_visible(event_box, TRUE);
+    g_object_set_data(G_OBJECT(event_box), "tab_num", GINT_TO_POINTER(1L));
+    gtk_container_add(GTK_CONTAINER(event_box), label);
+    gtk_notebook_set_tab_label(GTK_NOTEBOOK(gui.tabline), page, event_box);
+#endif
+    return label;
+}
+
 /*
  * Initialize the GUI.	Create all the windows, set up all the callbacks etc.
  * Returns OK for success, FAIL when the GUI can't be started.
@@ -3745,6 +3926,9 @@ gui_mch_init(void)
     gui.norm_pixel = gui.def_norm_pixel;
     gui.back_pixel = gui.def_back_pixel;
 
+#ifndef USE_GTK4
+    // The GtkSocket and GtkPlug functionality was removed from GTK4 because
+    // Wayland does have an XEmbed analogue.
     if (gtk_socket_id != 0)
     {
 	GtkWidget *plug;
@@ -3764,6 +3948,7 @@ gui_mch_init(void)
 	    gtk_socket_id = 0;
 	}
     }
+#endif
 
     if (gtk_socket_id == 0)
     {
@@ -3778,7 +3963,11 @@ gui_mch_init(void)
 	}
 	else
 #endif
+#ifdef USE_GTK4
+	    gui.mainwin = gtk_window_new();
+#else
 	    gui.mainwin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+#endif
     }
 
     gtk_widget_set_name(gui.mainwin, "vim-main-window");
@@ -3787,8 +3976,10 @@ gui_mch_init(void)
     gui.text_context = gtk_widget_create_pango_context(gui.mainwin);
     pango_context_set_base_dir(gui.text_context, PANGO_DIRECTION_LTR);
 
+#ifndef USE_GTK4
     gtk_container_set_border_width(GTK_CONTAINER(gui.mainwin), 0);
     gtk_widget_add_events(gui.mainwin, GDK_VISIBILITY_NOTIFY_MASK);
+#endif
 
     g_signal_connect(G_OBJECT(gui.mainwin), "delete-event",
 		     G_CALLBACK(&delete_event_cb), NULL);
@@ -3796,11 +3987,14 @@ gui_mch_init(void)
     g_signal_connect(G_OBJECT(gui.mainwin), "realize",
 		     G_CALLBACK(&mainwin_realize), NULL);
 
+#ifndef USE_GTK4
+    // TODO: Is there a display-changed for GTK4?
     g_signal_connect(G_OBJECT(gui.mainwin), "screen-changed",
 		     G_CALLBACK(&mainwin_screen_changed_cb), NULL);
 
     gui.accel_group = gtk_accel_group_new();
     gtk_window_add_accel_group(GTK_WINDOW(gui.mainwin), gui.accel_group);
+#endif
 
     // A vertical box holds the menubar, toolbar and main text window.
 #if GTK_CHECK_VERSION(3,2,0)
@@ -3822,8 +4016,13 @@ gui_mch_init(void)
     else
 #endif
     {
+#ifdef USE_GTK4
+	gtk_window_set_child(GTK_WINDOW(gui.mainwin), vbox);
+	gtk_widget_set_visible(vbox, TRUE);
+#else
 	gtk_container_add(GTK_CONTAINER(gui.mainwin), vbox);
 	gtk_widget_show(vbox);
+#endif
     }
 
 #ifdef FEAT_MENU
@@ -3862,7 +4061,7 @@ gui_mch_init(void)
 	// Always show the menubar, otherwise <F10> doesn't work.  It may be
 	// disabled in gui_init() later.
 	gtk_widget_show(gui.menubar);
-	gtk_box_pack_start(GTK_BOX(vbox), gui.menubar, FALSE, FALSE, 0);
+	gtk_box_prepend(GTK_BOX(vbox), gui.menubar);
     }
 #endif	// FEAT_MENU
 
@@ -3871,7 +4070,7 @@ gui_mch_init(void)
      * Create the toolbar and handle
      */
     // some aesthetics on the toolbar
-# ifdef USE_GTK3
+# if defined(USE_GTK3) || defined(USE_GTK4)
     // TODO: Add GTK+ 3 code here using GtkCssProvider if necessary.
     // N.B.  Since the default value of GtkToolbar::button-relief is
     // GTK_RELIEF_NONE, there's no need to specify that, probably.
@@ -3908,7 +4107,7 @@ gui_mch_init(void)
 	if (vim_strchr(p_go, GO_TOOLBAR) != NULL
 		&& (toolbar_flags & (TOOLBAR_TEXT | TOOLBAR_ICONS)))
 	    gtk_widget_show(gui.toolbar);
-	gtk_box_pack_start(GTK_BOX(vbox), gui.toolbar, FALSE, FALSE, 0);
+	gtk_box_prepend(GTK_BOX(vbox), gui.toolbar);
     }
 #endif // FEAT_TOOLBAR
 
@@ -3919,7 +4118,7 @@ gui_mch_init(void)
      */
     gui.tabline = gtk_notebook_new();
     gtk_widget_show(gui.tabline);
-    gtk_box_pack_start(GTK_BOX(vbox), gui.tabline, FALSE, FALSE, 0);
+    gtk_box_prepend(GTK_BOX(vbox), gui.tabline);
     gtk_notebook_set_show_border(GTK_NOTEBOOK(gui.tabline), FALSE);
     gtk_notebook_set_show_tabs(GTK_NOTEBOOK(gui.tabline), FALSE);
     gtk_notebook_set_scrollable(GTK_NOTEBOOK(gui.tabline), TRUE);
@@ -3933,7 +4132,7 @@ gui_mch_init(void)
 # endif
 
     {
-	GtkWidget *page, *label, *event_box;
+	GtkWidget *page, *tab_label;
 
 	// Add the first tab.
 # if GTK_CHECK_VERSION(3,2,0)
@@ -3943,17 +4142,10 @@ gui_mch_init(void)
 	page = gtk_vbox_new(FALSE, 0);
 # endif
 	gtk_widget_show(page);
-	gtk_container_add(GTK_CONTAINER(gui.tabline), page);
-	label = gtk_label_new("-Empty-");
-	gtk_widget_show(label);
-	event_box = gtk_event_box_new();
-	gtk_widget_show(event_box);
-	g_object_set_data(G_OBJECT(event_box), "tab_num", GINT_TO_POINTER(1L));
-# if !GTK_CHECK_VERSION(3,14,0)
-	gtk_misc_set_padding(GTK_MISC(label), 2, 2);
-# endif
-	gtk_container_add(GTK_CONTAINER(event_box), label);
-	gtk_notebook_set_tab_label(GTK_NOTEBOOK(gui.tabline), page, event_box);
+	gtk_notebook_append_page(GTK_NOTEBOOK(gui.tabline), page);
+
+	tab_label = gui_gtk_build_tab_label("-Empty-", page);
+	gtk_notebook_set_tab_label(GTK_NOTEBOOK(gui.tabline), page, tab_label);
 # if GTK_CHECK_VERSION(2,10,0)
 	gtk_notebook_set_tab_reorderable(GTK_NOTEBOOK(gui.tabline), page, TRUE);
 # endif
@@ -3972,8 +4164,13 @@ gui_mch_init(void)
 	    G_CALLBACK(on_tabline_menu), G_OBJECT(tabline_menu));
 #endif // FEAT_GUI_TABLINE
 
+#ifdef USE_GTK4
+    gui.formwin = gtk_fixed_new();
+#else
     gui.formwin = gui_gtk_form_new();
     gtk_container_set_border_width(GTK_CONTAINER(gui.formwin), 0);
+#endif
+
 #if !GTK_CHECK_VERSION(3,0,0)
     gtk_widget_set_events(gui.formwin, GDK_EXPOSURE_MASK);
 #endif
@@ -3986,6 +4183,16 @@ gui_mch_init(void)
     gui.surface = NULL;
 #endif
 
+#if GTK_CHECK_VERSION(4,0,0)
+    GtkEventController *key_mailbox = gtk_event_controller_key_new();
+
+    // GTK4 has removed the configure-event so we need to mimic it. From the GTK4 docs:
+    // The ::configure-event signal will be emitted when the size, position or stacking of the widget‘s window has changed.
+    g_signal_connect(gui.drawarea, "notify::default-height", G_CALLBACK(drawarea_reconfigure_cb), NULL);
+    g_signal_connect(gui.drawarea, "notify::default-width", G_CALLBACK(drawarea_reconfigure_cb), NULL);
+    g_signal_connect(gui.drawarea, "notify::maximized", G_CALLBACK(drawarea_reconfigure_cb), NULL);
+    g_signal_connect(gui.drawarea, "notify::display", G_CALLBACK(drawarea_reconfigure_cb), NULL);
+#else
     // Determine which events we will filter.
     gint event_mask =
 	GDK_EXPOSURE_MASK |
@@ -3997,7 +4204,7 @@ gui_mch_init(void)
 	GDK_KEY_RELEASE_MASK |
 	GDK_POINTER_MOTION_MASK |
 	GDK_POINTER_MOTION_HINT_MASK;
-#if GTK_CHECK_VERSION(3,4,0)
+# if GTK_CHECK_VERSION(3,4,0)
     if (GDK_IS_X11_DISPLAY(gdk_display_get_default()))
     {
 	// for X11, if we were using smooth scroll events, we
@@ -4014,9 +4221,9 @@ gui_mch_init(void)
 	// touchpads and wheels generate smooth scroll events expectedly.
 	event_mask |= GDK_SMOOTH_SCROLL_MASK;
     }
-#else
+# else
     event_mask |= GDK_SCROLL_MASK;
-#endif
+# endif
     gtk_widget_set_events(gui.drawarea, event_mask);
 
     gtk_widget_show(gui.drawarea);
@@ -4030,6 +4237,8 @@ gui_mch_init(void)
 					  : G_OBJECT(gui.drawarea),
 		       "key-press-event",
 		       G_CALLBACK(key_press_event), NULL);
+#endif // GTK_CHECK_VERSION(4,0,0)
+
 #if defined(FEAT_XIM) || GTK_CHECK_VERSION(3,0,0)
     // Also forward key release events for the benefit of GTK+ 2 input
     // modules.  Try CTRL-SHIFT-xdigits to enter a Unicode code point.
@@ -4072,8 +4281,14 @@ gui_mch_init(void)
      */
     vim_atom = gdk_atom_intern(VIM_ATOM_NAME, FALSE);
     vimenc_atom = gdk_atom_intern(VIMENC_ATOM_NAME, FALSE);
+#if GTK_CHECK_VERSION(4,0,0)
+    GdkDisplay *disp = gtk_widget_get_display(gui.mainwin);
+    clip_star.gtk_clipboard = gdk_display_get_primary_clipboard();
+    clip_plus.gtk_clipboard = gdk_display_get_clipboard();
+#else
     clip_star.gtk_sel_atom = GDK_SELECTION_PRIMARY;
     clip_plus.gtk_sel_atom = gdk_atom_intern("CLIPBOARD", FALSE);
+#endif
 
     /*
      * Start out by adding the configured border width into the border offset.
@@ -4373,7 +4588,11 @@ gui_gtk_get_screen_geom_of_win(
     else
 	dpy = gdk_display_get_default();
     if (win != NULL)
+# if GTK_CHECK_VERSION(4,0,0)
+	monitor = gdk_display_get_monitor_at_surface(dpy, gui_gtk_widget_get_containing_surface(wid));
+# else
 	monitor = gdk_display_get_monitor_at_window(dpy, win);
+# endif
     else
 	monitor = gdk_display_get_monitor_at_point(dpy, point_x, point_y);
     gdk_monitor_get_geometry(monitor, &geometry);
@@ -4671,6 +4890,7 @@ gui_mch_open(void)
 #endif
     }
 
+#ifndef USE_GTK4
     /*
      * Add selection handler functions.
      */
@@ -4681,6 +4901,7 @@ gui_mch_open(void)
 
     g_signal_connect(G_OBJECT(gui.drawarea), "selection-get",
 		     G_CALLBACK(selection_get_cb), NULL);
+#endif
 
     return OK;
 }
@@ -4766,9 +4987,21 @@ force_shell_resize_idle(gpointer data)
     int
 gui_mch_maximized(void)
 {
-    return (gui.mainwin != NULL && gtk_widget_get_window(gui.mainwin) != NULL
-	    && (gdk_window_get_state(gtk_widget_get_window(gui.mainwin))
-					       & GDK_WINDOW_STATE_MAXIMIZED));
+    if (gui.mainwin == NULL)
+	return FALSE;
+
+#if GTK_CHECK_VERSION(4,0,0)
+    GdkSurface *surf = gui_gtk_widget_get_containing_surface(gui.mainwin);
+    if (surf == NULL)
+	return FALSE;
+    return (gdk_toplevel_get_state(GDK_TOPLEVEL(s)) &
+	    GDK_TOPLEVEL_STATE_MAXIMIZED);
+#else
+    GdkWindow *w = gtk_widget_get_window(gui.mainwin);
+    if (w == NULL)
+	return FALSE;
+    return (gdk_window_get_state(w) & GDK_WINDOW_STATE_MAXIMIZED);
+#endif
 }
 
 /*
@@ -6803,7 +7036,23 @@ gui_mch_clear_block(int row1arg, int col1arg, int row2arg, int col2arg)
 #endif // !GTK_CHECK_VERSION(3,0,0)
 }
 
-#if GTK_CHECK_VERSION(3,0,0)
+#if GTK_CHECK_VERSION(4,0,0)
+    void
+gtk_widget_queue_draw_area(GtkWidget *widget,
+			   int x, int y,
+			   int w, int h)
+{
+    // The rectangle params are accepted for compat but ignored. The entire
+    // widget is redrawn.
+    GdkSurface *s = gui_gtk_widget_get_containing_surface(widget);
+    if (s == NULL)
+	return;
+
+    cairo_t * const cr = cairo_create(s);
+
+    gdk_surface_queue_render(s);
+}
+#elif GTK_CHECK_VERSION(3,0,0)
     static void
 gui_gtk_window_clear(GdkWindow *win)
 {
@@ -6834,8 +7083,12 @@ gui_gtk_window_clear(GdkWindow *win)
     void
 gui_mch_clear_all(void)
 {
+#if GTK_CHECK_VERSION(4,0,0)
+    gui_gtk_window_clear(gui.drawarea);
+#else
     if (gtk_widget_get_window(gui.drawarea) != NULL)
 	gui_gtk_window_clear(gtk_widget_get_window(gui.drawarea));
+#endif
 }
 
 #if !GTK_CHECK_VERSION(3,0,0)
@@ -6896,6 +7149,7 @@ gui_gtk_surface_copy_rect(int dest_x, int dest_y,
     cairo_destroy(cr);
 }
 #endif
+
 
 /*
  * Delete the given number of lines from the given row, scrolling up any
@@ -6988,8 +7242,37 @@ gui_mch_insert_lines(int row, int num_lines)
 }
 
 /*
- * X Selection stuff, for cutting and pasting text to other windows.
+ * Get the current selection and put it in the clipboard register.
  */
+
+#if GTK_CHECK_VERSION(4,0,0)
+    void
+clip_mch_request_selection(Clipboard_T *cbd)
+{
+    GdkContentProvider *src = gdk_clipboard_get_content(cbd->gtk_clipboard);
+    GValue contents;
+    const gchar *text_contents = NULL;
+    GError *error;
+    g_value_init(&contents, G_TYPE_STRING);
+    if (gdk_content_provider_get_value(src, &contents, &error) == FALSE) {
+	emsg(error);
+	g_error_free(error);
+	return;
+    }
+
+    text_contents = g_value_get_string(&contents);
+    clip_yank_selection(MCHAR, text_contents, (long)g_utf8_strlen(text_contents, -1), cbd);
+    g_value_unset(&contents);
+
+//     gdk_clipboard_read_async(
+// 	    cbd->gtk_clipboard,
+// 	    receivable_mime_types,
+// 	    0,
+// 	    NULL,
+// 	    &selection_received_cb,
+// 	    NULL);
+}
+#else
     void
 clip_mch_request_selection(Clipboard_T *cbd)
 {
@@ -7024,6 +7307,7 @@ clip_mch_request_selection(Clipboard_T *cbd)
 	yank_cut_buffer0(GDK_WINDOW_XDISPLAY(gtk_widget_get_window(gui.mainwin)),
 		cbd);
 }
+#endif
 
 /*
  * Disown the selection.
@@ -7044,6 +7328,11 @@ clip_mch_lose_selection(Clipboard_T *cbd UNUSED)
     int
 clip_mch_own_selection(Clipboard_T *cbd)
 {
+#ifdef USE_GTK4
+    // Much like winclip.c returning FAIL here prevents vim from thinking other
+    // applications cannot change the selection contents.
+    return FAIL;
+#else
     // If we're blocking autocmds, we are filling the register to offer the
     // selection (inside selection-get)
     if (is_autocmd_blocked())
@@ -7058,6 +7347,7 @@ clip_mch_own_selection(Clipboard_T *cbd)
 	gui_gtk_set_selection_targets(cbd->gtk_sel_atom);
     gui_mch_update();
     return (success) ? OK : FAIL;
+#endif
 }
 
 /*
@@ -7230,6 +7520,30 @@ gui_mch_mousehide(int hide)
 
 #if defined(FEAT_MOUSESHAPE) || defined(PROTO)
 
+# if GTK_CHECK_VERSION(3,0,0)
+static const char * mshape_css_names[] =
+{
+    "default",                  // GDK_LEFT_PTR
+    "blank",                    // GDK_CURSOR_IS_PIXMAP
+    "text",                     // GDK_XTERM
+    "ns-resize",                // GDK_SB_V_DOUBLE_ARROW
+    "nwse-resize",              // GDK_SIZING
+    "ew-resize",                // GDK_SB_H_DOUBLE_ARROW
+    "ew-resize",                // GDK_SIZING
+    "progress",                 // GDK_WATCH
+    "not-allowed",              // GDK_X_CURSOR
+    "crosshair",                // GDK_CROSSHAIR
+    "pointer",                  // GDK_HAND1
+    "pointer",                  // GDK_HAND2
+    "pointer",                  // GDK_PENCIL (no good option for this one)
+    "help",                     // GDK_QUESTION_ARROW
+    "default",                  // GDK_RIGHT_PTR (no css analogue)
+    "default",                  // GDK_CENTER_PTR (no css analogue)
+    "default"                   // GDK_LEFT_PTR
+};
+
+# else
+
 // Table for shape IDs.  Keep in sync with the mshape_names[] table in
 // misc2.c!
 static const int mshape_ids[] =
@@ -7252,28 +7566,6 @@ static const int mshape_ids[] =
     GDK_CENTER_PTR,		// up-arrow
     GDK_LEFT_PTR		// last one
 };
-
-# if GTK_CHECK_VERSION(3,0,0)
-static const char * mshape_css_names[] =
-{
-    "default",                  // GDK_LEFT_PTR
-    "blank",                    // GDK_CURSOR_IS_PIXMAP
-    "text",                     // GDK_XTERM
-    "ns-resize",                // GDK_SB_V_DOUBLE_ARROW
-    "nwse-resize",              // GDK_SIZING
-    "ew-resize",                // GDK_SB_H_DOUBLE_ARROW
-    "ew-resize",                // GDK_SIZING
-    "progress",                 // GDK_WATCH
-    "not-allowed",              // GDK_X_CURSOR
-    "crosshair",                // GDK_CROSSHAIR
-    "pointer",                  // GDK_HAND1
-    "pointer",                  // GDK_HAND2
-    "pointer",                  // GDK_PENCIL (no good option for this one)
-    "help",                     // GDK_QUESTION_ARROW
-    "default",                  // GDK_RIGHT_PTR (no css analogue)
-    "default",                  // GDK_CENTER_PTR (no css analogue)
-    "default"                   // GDK_LEFT_PTR
-};
 # endif
 
     void
@@ -7290,10 +7582,21 @@ mch_set_mouse_shape(int shape)
 	return;
 
     if (shape == MSHAPE_HIDE || gui.pointer_hidden)
+    {
+	disp = gtk_widget_get_display(gui.drawarea);
+	c = gdk_cursor_new_from_name(disp, "none");
+	gtk_widget_set_cursor(gui.drawarea, c);
 	gdk_window_set_cursor(gtk_widget_get_window(gui.drawarea),
 		gui.blank_pointer);
+    }
     else
     {
+# if GTK_CHECK_VERSION(3,0,0)
+	if (shape < (int)ARRAY_LENGTH(mshape_css_names))
+	{
+	    css_name = mshape_css_names[shape];
+	}
+# else
 	if (shape >= MSHAPE_NUMBERED)
 	{
 	    id = shape - MSHAPE_NUMBERED;
@@ -7305,10 +7608,8 @@ mch_set_mouse_shape(int shape)
 	else if (shape < (int)ARRAY_LENGTH(mshape_ids))
 	{
 	    id = mshape_ids[shape];
-# if GTK_CHECK_VERSION(3,0,0)
-	    css_name = mshape_css_names[shape];
-# endif
 	}
+# endif
 	else
 	    return;
 # if GTK_CHECK_VERSION(3,0,0)

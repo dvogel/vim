@@ -9,11 +9,15 @@
 #ifndef __GTK_FORM_H__
 #define __GTK_FORM_H__
 
-#ifdef USE_GTK3
-#include <gtk/gtk.h>
-#else
-#include <gdk/gdk.h>
-#include <gtk/gtkcontainer.h>
+#ifndef USE_GTK4
+
+#ifdef FEAT_GUI_GTK
+#  if defined(USE_GTK3) || defined(USE_GTK4)
+#    include <gtk/gtk.h>
+#  else
+#    include <gdk/gdk.h>
+#    include <gtk/gtkcontainer.h>
+#  endif
 #endif
 
 
@@ -22,7 +26,7 @@ extern "C" {
 #endif
 
 #define GTK_TYPE_FORM		       (gui_gtk_form_get_type ())
-#ifdef USE_GTK3
+#if defined(USE_GTK3) || defined(USE_GTK4)
 #define GTK_FORM(obj)		       (G_TYPE_CHECK_INSTANCE_CAST((obj), GTK_TYPE_FORM, GtkForm))
 #define GTK_FORM_CLASS(klass)	       (G_TYPE_CHECK_CLASS_CAST((klass), GTK_TYPE_FORM, GtkFormClass))
 #define GTK_IS_FORM(obj)	       (G_TYPE_CHECK_INSTANCE_TYPE((obj), GTK_TYPE_FORM))
@@ -38,6 +42,7 @@ extern "C" {
 typedef struct _GtkForm GtkForm;
 typedef struct _GtkFormClass GtkFormClass;
 
+#if defined(USE_GTK3)
 struct _GtkForm
 {
     GtkContainer container;
@@ -51,8 +56,24 @@ struct _GtkFormClass
 {
     GtkContainerClass parent_class;
 };
+#elif defined(USE_GTK4)
+struct _GtkForm
+{
+    GtkFixed fixed;
+    GtkContainer container;
 
-#ifdef USE_GTK3
+    GList *children;
+    GdkWindow *bin_window;
+    gint freeze_count;
+};
+
+struct _GtkFormClass
+{
+    GtkContainerClass parent_class;
+};
+#endif
+
+#if defined(USE_GTK3) || defined(USE_GTK4)
 GType gui_gtk_form_get_type(void);
 #else
 GtkType gui_gtk_form_get_type(void);
@@ -77,4 +98,6 @@ void gui_gtk_form_thaw(GtkForm *form);
 #ifdef __cplusplus
 }
 #endif
+
+#endif  // USE_GTK4
 #endif	// __GTK_FORM_H__

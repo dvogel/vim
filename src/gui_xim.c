@@ -26,13 +26,17 @@ typedef int GdkEventKey;
 #endif
 
 #if defined(FEAT_GUI_GTK) && defined(FEAT_XIM)
-# if GTK_CHECK_VERSION(3,0,0)
+# if GTK_CHECK_VERSION(4,0,0)
+#  include <gdk/gdkkeysyms.h>
+# elif GTK_CHECK_VERSION(3,0,0)
 #  include <gdk/gdkkeysyms-compat.h>
 # else
 #  include <gdk/gdkkeysyms.h>
 # endif
 # ifdef MSWIN
 #  include <gdk/gdkwin32.h>
+# elif GTK_CHECK_VERSION(4,0,0)
+#  include <gdk/gdk.h>
 # else
 #  include <gdk/gdkx.h>
 # endif
@@ -194,7 +198,7 @@ static int im_preedit_cursor   = 0;	// cursor offset in characters
 static int im_preedit_trailing = 0;	// number of characters after cursor
 
 static unsigned long im_commit_handler_id  = 0;
-static unsigned int  im_activatekey_keyval = GDK_VoidSymbol;
+static unsigned int  im_activatekey_keyval = GDK_KEY_VoidSymbol;
 static unsigned int  im_activatekey_state  = 0;
 
 static GtkWidget *preedit_window = NULL;
@@ -294,6 +298,28 @@ im_preedit_window_set_position(void)
     gtk_window_move(GTK_WINDOW(preedit_window), x, y);
 }
 
+#ifdef FEAT_GUI_GTK
+    static gdouble
+im_preedit_window_calc_dpi(void)
+{
+#  ifdef USE_GTK4
+    const gdouble dpi_coeff = 96.0 / 72.0;
+    GdkDisplay * disp = gtk_widget_get_display(gui.mainwin);
+    GtkSettings * settings = gtk_settings_get_for_display(disp);
+    GValue dpi_setting;
+    g_object_get_property(settings, "gtk-xft-dpi", &dpi_setting);
+    gint dpi = g_value_get_int(&dpi_setting);
+    g_free(settings);
+    return (gdouble)dpi;
+    return dpi_coeff;
+#  else
+    GdkScreen * const screen
+	= gdk_window_get_screen(gtk_widget_get_window(gui.mainwin));
+    return gdk_screen_get_resolution(screen);
+#  endif
+}
+#endif
+
     static void
 im_preedit_window_open(void)
 {
@@ -334,17 +360,11 @@ im_preedit_window_open(void)
 		= pango_font_description_get_size(gui.norm_font) / PANGO_SCALE;
 	gchar	*fontsize_propval = NULL;
 
-	if (!pango_font_description_get_size_is_absolute(gui.norm_font))
-	{
-	    // fontsize was given in points.  Convert it into that in pixels
-	    // to use with CSS.
-	    GdkScreen * const screen
-		  = gdk_window_get_screen(gtk_widget_get_window(gui.mainwin));
-	    const gdouble dpi = gdk_screen_get_resolution(screen);
-	    fontsize = dpi * fontsize / 72;
-	}
 	if (fontsize > 0)
-	    fontsize_propval = g_strdup_printf("%dpx", fontsize);
+	    if (pango_font_description_get_size_is_absolute(gui.norm_font))
+		fontsize_propval = g_strdup_printf("%dpx", fontsize);
+	    else
+		fontsize_propval = g_strdup_printf("%dpt", fontsize);
 	else
 	    fontsize_propval = g_strdup_printf("inherit");
 
@@ -944,18 +964,22 @@ im_string_to_keyval(const char *str, unsigned int *keyval, unsigned int *state)
 	    case 'S': case 's': tmp_state |= (unsigned)GDK_SHIFT_MASK;	break;
 	    case 'L': case 'l': tmp_state |= (unsigned)GDK_LOCK_MASK;	break;
 	    case 'C': case 'c': tmp_state |= (unsigned)GDK_CONTROL_MASK;break;
+#ifdef USE_GTK4
+	    case '1':		tmp_state |= (unsigned)GDK_ALT_MASK;	break;
+#else
 	    case '1':		tmp_state |= (unsigned)GDK_MOD1_MASK;	break;
 	    case '2':		tmp_state |= (unsigned)GDK_MOD2_MASK;	break;
 	    case '3':		tmp_state |= (unsigned)GDK_MOD3_MASK;	break;
 	    case '4':		tmp_state |= (unsigned)GDK_MOD4_MASK;	break;
 	    case '5':		tmp_state |= (unsigned)GDK_MOD5_MASK;	break;
+#endif
 	    default:
 		return FALSE;
 	}
 
     tmp_keyval = gdk_keyval_from_name(str);
 
-    if (tmp_keyval == 0 || tmp_keyval == GDK_VoidSymbol)
+    if (tmp_keyval == 0 || tmp_keyval == GDK_KEY_VoidSymbol)
 	return FALSE;
 
     if (keyval != NULL)
@@ -980,7 +1004,7 @@ im_xim_isvalid_imactivate(void)
 {
     if (p_imak[0] == NUL)
     {
-	im_activatekey_keyval = GDK_VoidSymbol;
+	im_activatekey_keyval = GDK_KEY_VoidSymbol;
 	im_activatekey_state  = 0;
 	return TRUE;
     }
@@ -1036,7 +1060,7 @@ xim_reset(void)
 	{
 	    xim_set_focus(gui.in_focus);
 
-	    if (im_activatekey_keyval != GDK_VoidSymbol)
+	    if (im_activatekey_keyval != GDK_KEY_VoidSymbol)
 	    {
 		if (im_is_active)
 		{
@@ -1060,12 +1084,18 @@ xim_reset(void)
     xim_has_preediting = FALSE;
 }
 
+#if defined(FEAT_GUI_GTK)
+# if defined(USE_GTK4)
+    int
+xim_queue_key_press_event(GdkEvent *event, int down)
+# else
+#  define gdk_event_get_modifier_state(event) event->state
+#  define gdk_key_event_get_keyval(event) event->keyval
     int
 xim_queue_key_press_event(GdkEventKey *event, int down)
+# endif
 {
-#ifdef FEAT_GUI_GTK
-    if (event->state & GDK_SUPER_MASK) return FALSE;
-#endif
+    if (gdk_event_get_modifier_state(event) & GDK_SUPER_MASK) return FALSE;
     if (down)
     {
 	// Workaround GTK2 XIM 'feature' that always converts keypad keys to
@@ -1077,26 +1107,26 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
 	// that commit and go ahead & process it ourselves.  That way we can
 	// still distinguish keypad keys for use in mappings.
 	// Also add GDK_space to make <S-Space> work.
-	switch (event->keyval)
+	switch (gdk_key_event_get_keyval(event))
 	{
-	    case GDK_KP_Add:      xim_expected_char = '+';  break;
-	    case GDK_KP_Subtract: xim_expected_char = '-';  break;
-	    case GDK_KP_Divide:   xim_expected_char = '/';  break;
-	    case GDK_KP_Multiply: xim_expected_char = '*';  break;
-	    case GDK_KP_Decimal:  xim_expected_char = '.';  break;
-	    case GDK_KP_Equal:    xim_expected_char = '=';  break;
-	    case GDK_KP_0:	  xim_expected_char = '0';  break;
-	    case GDK_KP_1:	  xim_expected_char = '1';  break;
-	    case GDK_KP_2:	  xim_expected_char = '2';  break;
-	    case GDK_KP_3:	  xim_expected_char = '3';  break;
-	    case GDK_KP_4:	  xim_expected_char = '4';  break;
-	    case GDK_KP_5:	  xim_expected_char = '5';  break;
-	    case GDK_KP_6:	  xim_expected_char = '6';  break;
-	    case GDK_KP_7:	  xim_expected_char = '7';  break;
-	    case GDK_KP_8:	  xim_expected_char = '8';  break;
-	    case GDK_KP_9:	  xim_expected_char = '9';  break;
-	    case GDK_space:	  xim_expected_char = ' ';  break;
-	    default:		  xim_expected_char = NUL;
+	    case GDK_KEY_KP_Add:	xim_expected_char = '+';  break;
+	    case GDK_KEY_KP_Subtract:	xim_expected_char = '-';  break;
+	    case GDK_KEY_KP_Divide:	xim_expected_char = '/';  break;
+	    case GDK_KEY_KP_Multiply:	xim_expected_char = '*';  break;
+	    case GDK_KEY_KP_Decimal:	xim_expected_char = '.';  break;
+	    case GDK_KEY_KP_Equal:	xim_expected_char = '=';  break;
+	    case GDK_KEY_KP_0:		xim_expected_char = '0';  break;
+	    case GDK_KEY_KP_1:		xim_expected_char = '1';  break;
+	    case GDK_KEY_KP_2:		xim_expected_char = '2';  break;
+	    case GDK_KEY_KP_3:		xim_expected_char = '3';  break;
+	    case GDK_KEY_KP_4:		xim_expected_char = '4';  break;
+	    case GDK_KEY_KP_5:		xim_expected_char = '5';  break;
+	    case GDK_KEY_KP_6:		xim_expected_char = '6';  break;
+	    case GDK_KEY_KP_7:		xim_expected_char = '7';  break;
+	    case GDK_KEY_KP_8:		xim_expected_char = '8';  break;
+	    case GDK_KEY_KP_9:		xim_expected_char = '9';  break;
+	    case GDK_KEY_KP_Space:	xim_expected_char = ' ';  break;
+	    default:			xim_expected_char = NUL;
 	}
 	xim_ignored_char = FALSE;
     }
@@ -1111,8 +1141,8 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
 	// Filter 'imactivatekey' and map it to CTRL-^.  This way, Vim is
 	// always aware of the current status of IM, and can even emulate
 	// the activation key for modules that don't support one.
-	if (event->keyval == im_activatekey_keyval
-	     && (event->state & im_activatekey_state) == im_activatekey_state)
+	if (gdk_key_event_get_keyval(event) == im_activatekey_keyval
+	     && (gdk_event_get_modifier_state(event) & im_activatekey_state) == im_activatekey_state)
 	{
 	    unsigned int state_mask;
 
@@ -1123,11 +1153,11 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
 	    state_mask |= ((int)GDK_SHIFT_MASK | (int)GDK_CONTROL_MASK
 							| (int)GDK_MOD1_MASK);
 
-	    if ((event->state & state_mask) != im_activatekey_state)
+	    if ((gdk_event_get_modifier_state(event) & state_mask) != im_activatekey_state)
 		return FALSE;
 
 	    // Don't send it a second time on GDK_KEY_RELEASE.
-	    if (event->type != GDK_KEY_PRESS)
+	    if (gdk_event_get_modifier_state(event) != GDK_KEY_PRESS)
 		return TRUE;
 
 	    if (map_to_exists_mode((char_u *)"", MODE_LANGMAP, FALSE))
@@ -1155,7 +1185,7 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
 	// Don't filter events through the IM context if IM isn't active
 	// right now.  Unlike with GTK+ 1.2 we cannot rely on the IM module
 	// not doing anything before the activation key was sent.
-	if (im_activatekey_keyval == GDK_VoidSymbol || im_is_active)
+	if (im_activatekey_keyval == GDK_KEY_VoidSymbol || im_is_active)
 	{
 	    int imresult = gtk_im_context_filter_keypress(xic, event);
 
@@ -1170,9 +1200,9 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
 		// if 3, Vim can't move back the above line for 5.
 		// thus, this part should not parse the key.
 		if (!imresult && preedit_start_col != MAXCOL
-					    && event->keyval == GDK_Return)
+					    && gdk_key_event_get_keyval(event) == GDK_KEY_KP_Return)
 		{
-		    im_synthesize_keypress(GDK_Return, 0U);
+		    im_synthesize_keypress(GDK_KEY_KP_Return, 0U);
 		    return FALSE;
 		}
 	    }
@@ -1194,6 +1224,7 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
 
     return FALSE;
 }
+#endif
 
     int
 im_get_status(void)

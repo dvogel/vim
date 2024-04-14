@@ -4137,9 +4137,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	you really want to :-).  See |gui-scrollbars| for more information.
 
 								*'go-v'*
-	  'v'	Use a vertical button layout for dialogs.  When not included,
-		a horizontal layout is preferred, but when it doesn't fit a
-		vertical layout is used anyway.  Not supported in GTK 3.
+	  'v'	No longer supported. Used to mean dialog buttons should be
+	        layed out veritically. Removed due to GTK API changes.
 								*'go-p'*
 	  'p'	Use Pointer callbacks for X11 GUI.  This is required for some
 		window managers.  If the cursor is not blinking or hollow at

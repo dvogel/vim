@@ -23,6 +23,8 @@
  * 2016  Kazunobu Kuriyama  <kazunobu.kuriyama@gmail.com>
  */
 
+#ifndef USE_GTK4
+
 #include "vim.h"
 #include <gtk/gtk.h>	// without this it compiles, but gives errors at
 			// runtime!
@@ -881,3 +883,5 @@ form_child_unmap(GtkWidget *widget UNUSED, gpointer user_data)
     child->mapped = FALSE;
     gdk_window_hide(child->window);
 }
+
+#endif // USE_GTK4

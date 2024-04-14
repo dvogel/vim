@@ -502,7 +502,7 @@
 		|| defined(FEAT_GUI_PHOTON) \
 		|| defined(FEAT_GUI_HAIKU))
 
-# define FEAT_TOOLBAR
+/* # define FEAT_TOOLBAR */
 #endif
 
 
@@ -513,7 +513,7 @@
 /*
  * GUI dark theme variant
  */
-#if defined(FEAT_GUI_GTK) && defined(USE_GTK3)
+#if defined(FEAT_GUI_GTK) && ( defined(USE_GTK3) || defined(USE_GTK4) )
 # define FEAT_GUI_DARKTHEME
 #endif
 
@@ -1183,3 +1183,10 @@
 #if defined(FEAT_NORMAL) && defined(HAVE_XATTR) && !defined(MACOS_X)
 # define FEAT_XATTR
 #endif
+
+#undef FEAT_MENU
+#undef FEAT_PROP_POPUP
+#undef FEAT_TERM_POPUP_MENU
+#undef FEAT_CLIENTSERVER
+#undef FEAT_DND
+
