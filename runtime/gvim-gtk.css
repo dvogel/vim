@@ -1,0 +1,20 @@
+#find-and-replace-dialog > box {
+	margin: 10px;
+}
+
+#find-and-replace-dialog #find-and-replace-field-layout {
+	border-spacing: 10px;
+}
+
+#find-and-replace-dialog #find-and-replace-field-layout grid {
+	border-spacing: 4px;
+}
+
+#find-and-replace-dialog #find-and-replace-action-layout {
+	border-spacing: 10px;
+}
+
+#find-and-replace-dialog separator {
+	margin: 0px 10px 0px 10px;
+}
+

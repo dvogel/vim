@@ -69,6 +69,9 @@ jobs:
             interface: dynamic
             extra: [uchar, testgui]
           - features: huge
+            compiler: gcc
+            extra: [testgui_gtk4]
+          - features: huge
             compiler: clang
             # Lua5.1 is the most widely used version (since it's what LuaJIT is
             # compatible with), so ensure it works
@@ -287,7 +290,12 @@ jobs:
 
       - name: Configure
         run: |
-          ./configure --with-features=${{ matrix.features }} ${CONFOPT} --enable-fail-if-missing
+          if ${{ contains(matrix.extra, 'testgui') }}; then
+            gui_opt=gtk4
+          else
+            gui_opt=auto
+          fi
+          ./configure --with-features=${{ matrix.features }} ${CONFOPT} --enable-fail-if-missing --enable-gui=$gui_opt
           # Append various warning flags to CFLAGS.
           sed -i -f ci/config.mk.sed ${SRCDIR}/auto/config.mk
           sed -i -f ci/config.mk.${CC}.sed ${SRCDIR}/auto/config.mk

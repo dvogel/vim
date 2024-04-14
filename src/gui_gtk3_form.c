@@ -24,17 +24,19 @@
  */
 
 #include "vim.h"
+
+#ifndef USE_GTK4
 #include <gtk/gtk.h>	// without this it compiles, but gives errors at
 			// runtime!
-#include "gui_gtk_f.h"
+#include "gui_gtk3_form.h"
 #if !GTK_CHECK_VERSION(3,0,0)
 # include <gtk/gtksignal.h>
 #endif
-#ifdef MSWIN
-# include <gdk/gdkwin32.h>
-#else
-# include <gdk/gdkx.h>
-#endif
+/* #ifdef MSWIN */
+/* # include <gdk/gdkwin32.h> */
+/* #else */
+/* # include <gdk/gdkx.h> */
+/* #endif */
 
 typedef struct _GtkFormChild GtkFormChild;
 
@@ -881,3 +883,5 @@ form_child_unmap(GtkWidget *widget UNUSED, gpointer user_data)
     child->mapped = FALSE;
     gdk_window_hide(child->window);
 }
+
+#endif // !defined(USE_GTK4)

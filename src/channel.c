@@ -3788,9 +3788,11 @@ channel_read(channel_T *channel, ch_part_T part, char *func)
 	    ch_close_part_on_error(channel, part, (len < 0), func);
     }
 #if defined(CH_HAS_GUI) && defined(FEAT_GUI_GTK)
+# ifndef USE_GTK4
     else if (CH_HAS_GUI && gtk_main_level() > 0)
 	// signal the main loop that there is something to read
 	gtk_main_quit();
+# endif
 #endif
 }
 

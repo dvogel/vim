@@ -532,9 +532,11 @@ func Test_geometry()
       call assert_inrange(8, 13,  str2nr(lines[1]))
       " on Wayland there is no way to set or retrieve window positions
       if empty($WAYLAND_DISPLAY)
-        call assert_equal('41', lines[2])
-        call assert_equal('150', lines[3])
-        call assert_equal('[41, 150]', lines[4])
+        " With GTK4, event on X11, the window position is unavailable, giving
+        " us -1.
+        call assert_match('\v(41|-1)', lines[2])
+        call assert_match('\v(150|-1)', lines[3])
+        call assert_match('\v([41, 150]|[-1, -1])', lines[4])
       endif
     endif
   endif

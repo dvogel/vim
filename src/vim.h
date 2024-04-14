@@ -2311,8 +2311,12 @@ typedef struct
     Atom	sel_atom;	// PRIMARY/CLIPBOARD selection ID
 # endif
 
-# ifdef FEAT_GUI_GTK
+# if defined(FEAT_GUI_GTK)
+#  ifdef USE_GTK4
+    GdkClipboard *gtk_clipboard;
+#  else
     GdkAtom     gtk_sel_atom;	// PRIMARY/CLIPBOARD selection ID
+#  endif
 # endif
 
 # if defined(MSWIN) || defined(FEAT_CYGWIN_WIN32_CLIPBOARD)
@@ -2632,12 +2636,6 @@ typedef int (*opt_expand_cb_T)(optexpand_T *args, int *numMatches, char_u ***mat
 #  endif
 # else
 #  define X_DISPLAY	xterm_dpy
-# endif
-#endif
-
-#if defined(FEAT_BROWSE) && defined(GTK_CHECK_VERSION)
-# if GTK_CHECK_VERSION(2,4,0)
-#  define USE_FILE_CHOOSER
 # endif
 #endif
 

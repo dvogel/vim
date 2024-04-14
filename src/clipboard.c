@@ -128,7 +128,7 @@ clip_own_selection(Clipboard_T *cbd)
      * Also want to check somehow that we are reading from the keyboard rather
      * than a mapping etc.
      */
-#ifdef FEAT_X11
+#ifdef FEAT_XCLIPBOARD
     // Always own the selection, we might have lost it without being
     // notified, e.g. during a ":sh" command.
     if (cbd->available)
@@ -1168,7 +1168,7 @@ clip_copy_modeless_selection(int both UNUSED)
     // Make the register contents available to the outside world.
     clip_gen_set_selection(&clip_star);
 
-#ifdef FEAT_X11
+#if defined(FEAT_X11) || defined(USE_GTK4)
     if (both)
     {
 	// Do the same for the '+' register.
@@ -1235,7 +1235,7 @@ clip_x11_owner_exists(Clipboard_T *cbd)
     int
 clip_gen_owner_exists(Clipboard_T *cbd UNUSED)
 {
-#ifdef FEAT_XCLIPBOARD
+#ifdef FEAT_XCLIPBOARD || USE_GTK4
 # ifdef FEAT_GUI_GTK
     if (gui.in_use)
 	return clip_gtk_owner_exists(cbd);
@@ -1332,12 +1332,17 @@ did_set_clipboard(optset_T *args UNUSED)
 	vim_regfree(clip_exclude_prog);
 	clip_exclude_prog = new_exclude_prog;
 #ifdef FEAT_GUI_GTK
+# ifndef USE_GTK4
+	// TODO: What should GTK4 do?
 	if (gui.in_use)
 	{
 	    gui_gtk_set_selection_targets((GdkAtom)GDK_SELECTION_PRIMARY);
 	    gui_gtk_set_selection_targets((GdkAtom)clip_plus.gtk_sel_atom);
+# ifdef FEAT_DND
 	    gui_gtk_set_dnd_targets();
+# endif
 	}
+# endif
 #endif
     }
     else
@@ -1914,7 +1919,7 @@ yank_cut_buffer0(Display *dpy, Clipboard_T *cbd)
  * 'permanent' of the two), otherwise the PRIMARY one.
  * For now, use a hard-coded sanity limit of 1Mb of data.
  */
-#if (defined(FEAT_X11) && defined(FEAT_CLIPBOARD)) || defined(PROTO)
+#if (defined(FEAT_XCLIPBOARD) && defined(FEAT_CLIPBOARD)) || defined(PROTO)
     void
 x11_export_final_selection(void)
 {

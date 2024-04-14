@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+export CFLAGS=-g3
+
+bash ./configure \
+    --with-features=huge \
+    --enable-python3interp \
+    --without-gnome \
+    --enable-cscope \
+    --enable-fontset \
+    --enable-rubyinterp \
+    --enable-luainterp \
+    --enable-multibyte \
+    --disable-perlinterp \
+    --disable-netbeans \
+    --prefix=$HOME/opt/vim STRIP= \
+    "$@"

@@ -1735,7 +1735,9 @@ win_line(
 	chartabsize_T cts;
 	init_chartabsize_arg(&cts, wp, lnum, 0, line, line);
 	(void)win_lbr_chartabsize(&cts, NULL);
+# ifdef FEAT_PROP_POPUP
 	vcol_first_char = cts.cts_first_char;
+# endif
 	clear_chartabsize_arg(&cts);
     }
 #endif
@@ -3072,7 +3074,6 @@ win_line(
 									   : 0;
 		    char_u  *p = ptr - (mb_off + 1);
 		    chartabsize_T cts;
-
 
 		    colnr_T init_colnr = wlv.vcol;
 # ifdef FEAT_PROP_POPUP

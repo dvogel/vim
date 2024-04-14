@@ -79,6 +79,9 @@ When the GUI starts up initializations are carried out, in this order:
   gvimrc file.  If this file is not owned by you, some security restrictions
   apply.  When ".gvimrc" is not found, "_gvimrc" is tried too.  For Macintosh
   and DOS/Win32 "_gvimrc" is tried first.
+- For the GTK+ 4 GUI, all files named "gvim-gtk.css" found in {runtimepath}
+  are loaded. These are only loaded at startup. Changes made after the GUI
+  starts will not be reflected in the GUI until it is restarted.
 
 NOTE: All but the first one are not carried out if Vim was started with
 "-u NONE" or "-u DEFAULTS" and no "-U" argument was given, or when started

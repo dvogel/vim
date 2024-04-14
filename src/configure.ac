@@ -295,7 +295,7 @@ if test "$vim_cv_uname_output" = Darwin; then
 
      dnl Assume we don't want X11 unless it was specifically asked for
      dnl (--with-x) or Motif or GTK GUI is used.
-     if test -z "$with_x" -a "X$enable_gui" != Xmotif -a "X$enable_gui" != Xgtk2 -a "X$enable_gui" != Xgtk3; then
+     if test -z "$with_x" -a "X$enable_gui" != Xmotif -a "X$enable_gui" != Xgtk2 -a "X$enable_gui" != Xgtk3 -a "X$enable_gui" != Xgtk4; then
       with_x=no
      fi
   fi
@@ -2513,7 +2513,7 @@ test "x$with_x" = xno -a "x$HAIKU" != "xyes" -a "x$MACOS_X" != "xyes" -a "x$QNX"
 
 AC_MSG_CHECKING(--enable-gui argument)
 AC_ARG_ENABLE(gui,
- [  --enable-gui[=OPTS]       X11 GUI. [default=auto] [OPTS=auto/no/gtk2/gnome2/gtk3/motif/haiku/photon/carbon]], , enable_gui="auto")
+ [  --enable-gui[=OPTS]       X11 GUI. [default=auto] [OPTS=auto/no/gtk2/gnome2/gtk3/gtk4/motif/haiku/photon/carbon]], , enable_gui="auto")
 
 dnl Canonicalize the --enable-gui= argument so that it can be easily compared.
 dnl Do not use character classes for portability with old tools.
@@ -2523,6 +2523,7 @@ enable_gui_canon=`echo "_$enable_gui" | \
 dnl Skip everything by default.
 SKIP_GTK2=YES
 SKIP_GTK3=YES
+SKIP_GTK4=YES
 SKIP_GNOME=YES
 SKIP_MOTIF=YES
 SKIP_PHOTON=YES
@@ -2564,22 +2565,37 @@ else
 
   case "$enable_gui_canon" in
     no|none)	AC_MSG_RESULT(no GUI support) ;;
-    yes|""|auto)	AC_MSG_RESULT(yes/auto - automatic GUI support)
-		gui_auto=yes
-		SKIP_GTK2=
-		SKIP_GTK3=
-		SKIP_GNOME=
-		SKIP_MOTIF=;;
-    gtk2)	AC_MSG_RESULT(GTK+ 2.x GUI support)
-		SKIP_GTK2=;;
-    gnome2)	AC_MSG_RESULT(GNOME 2.x GUI support)
-		SKIP_GNOME=
-		SKIP_GTK2=;;
-    gtk3)	AC_MSG_RESULT(GTK+ 3.x GUI support)
-		SKIP_GTK3=;;
-    motif)	AC_MSG_RESULT(Motif GUI support)
-		SKIP_MOTIF=;;
-    *)		AC_MSG_RESULT([Sorry, $enable_gui GUI is not supported]) ;;
+    yes|""|auto)
+        AC_MSG_RESULT(yes/auto - automatic GUI support)
+        gui_auto=yes
+        SKIP_GTK2=
+        SKIP_GTK3=
+        SKIP_GTK4=
+        SKIP_GNOME=
+        SKIP_MOTIF=
+        ;;
+    gtk2)
+        AC_MSG_RESULT(GTK+ 2.x GUI support)
+        SKIP_GTK2=
+        ;;
+    gnome2)
+        AC_MSG_RESULT(GNOME 2.x GUI support)
+        SKIP_GNOME=
+        SKIP_GTK2=
+        ;;
+    gtk3)
+        AC_MSG_RESULT(GTK+ 3.x GUI support)
+        SKIP_GTK3=
+        ;;
+    gtk4)
+        AC_MSG_RESULT(GTK+ 4.x GUI support)
+        SKIP_GTK4=
+        ;;
+    motif)
+        AC_MSG_RESULT(Motif GUI support)
+        SKIP_MOTIF=
+        ;;
+    *) AC_MSG_RESULT([Sorry, $enable_gui GUI is not supported]) ;;
   esac
 
 fi
@@ -2588,8 +2604,8 @@ if test "x$SKIP_GTK2" != "xYES" -a "$enable_gui_canon" != "gtk2" \
 				-a "$enable_gui_canon" != "gnome2"; then
   AC_MSG_CHECKING(whether or not to look for GTK+ 2)
   AC_ARG_ENABLE(gtk2-check,
-	[  --enable-gtk2-check     If auto-select GUI, check for GTK+ 2 [default=yes]],
-	, enable_gtk2_check="yes")
+                [  --enable-gtk2-check     If auto-select GUI, check for GTK+ 2 [default=yes]],
+                , enable_gtk2_check="yes")
   AC_MSG_RESULT($enable_gtk2_check)
   if test "x$enable_gtk2_check" = "xno"; then
     SKIP_GTK2=YES
@@ -2600,8 +2616,8 @@ fi
 if test "x$SKIP_GNOME" != "xYES" -a "$enable_gui_canon" != "gnome2"; then
   AC_MSG_CHECKING(whether or not to look for GNOME)
   AC_ARG_ENABLE(gnome-check,
-	[  --enable-gnome-check    If GTK GUI, check for GNOME [default=no]],
-	, enable_gnome_check="no")
+                [  --enable-gnome-check    If GTK GUI, check for GNOME [default=no]],
+                , enable_gnome_check="no")
   AC_MSG_RESULT($enable_gnome_check)
   if test "x$enable_gnome_check" = "xno"; then
     SKIP_GNOME=YES
@@ -2611,19 +2627,30 @@ fi
 if test "x$SKIP_GTK3" != "xYES" -a "$enable_gui_canon" != "gtk3"; then
   AC_MSG_CHECKING(whether or not to look for GTK+ 3)
   AC_ARG_ENABLE(gtk3-check,
-	[  --enable-gtk3-check     If auto-select GUI, check for GTK+ 3 [default=yes]],
-	, enable_gtk3_check="yes")
+                [  --enable-gtk3-check     If auto-select GUI, check for GTK+ 3 [default=yes]],
+                , enable_gtk3_check="yes")
   AC_MSG_RESULT($enable_gtk3_check)
   if test "x$enable_gtk3_check" = "xno"; then
     SKIP_GTK3=YES
   fi
 fi
 
+if test "x$SKIP_GTK4" != "xYES" -a "$enable_gui_canon" != "gtk4"; then
+  AC_MSG_CHECKING(whether or not to look for GTK+ 4)
+  AC_ARG_ENABLE(gtk4-check,
+                [  --enable-gtk4-check     If auto-select GUI, check for GTK+ 4 [default=yes]],
+                , enable_gtk4_check="yes")
+  AC_MSG_RESULT($enable_gtk4_check)
+  if test "x$enable_gtk4_check" = "xno"; then
+    SKIP_GTK4=YES
+  fi
+fi
+
 if test "x$SKIP_MOTIF" != "xYES" -a "$enable_gui_canon" != "motif"; then
   AC_MSG_CHECKING(whether or not to look for Motif)
   AC_ARG_ENABLE(motif-check,
-	[  --enable-motif-check    If auto-select GUI, check for Motif [default=yes]],
-	, enable_motif_check="yes")
+                [  --enable-motif-check    If auto-select GUI, check for Motif [default=yes]],
+                , enable_motif_check="yes")
   AC_MSG_RESULT($enable_motif_check)
   if test "x$enable_motif_check" = "xno"; then
     SKIP_MOTIF=YES
@@ -2647,6 +2674,7 @@ AC_DEFUN(AM_PATH_GTK,
     AS_CASE([$min_gtk_version],
 	    [2.*], [gtk_pkg_name="gtk+-2.0"],
 	    [3.*], [gtk_pkg_name="gtk+-3.0"],
+	    [4.*], [gtk_pkg_name="gtk4"],
 		   [AC_MSG_FAILURE([The configure script does not know which pkg-config name to use for GTK $min_gtk_version"])])
 
     AC_MSG_CHECKING([for pkg-config $gtk_pkg_name])
@@ -2851,9 +2879,10 @@ if test -z "$SKIP_GTK3"; then
 		 GUI_INC_LOC="$GTK_CFLAGS"])
     if test -n "$GTK_CFLAGS"; then
       SKIP_GTK2=YES
+      SKIP_GTK4=YES
       SKIP_GNOME=YES
       SKIP_MOTIF=YES
-      GUITYPE=GTK
+      GUITYPE=GTK3
       AC_SUBST(GTK_LIBNAME)
       AC_DEFINE(USE_GTK3)
     fi
@@ -2874,21 +2903,23 @@ if test -z "$SKIP_GTK2"; then
   fi
 
   if test "x$PKG_CONFIG" != "xno"; then
-    dnl First try finding version 2.2.0 or later.  The 2.0.x series has
+    dnl First try finding version 2.4.0 or later.  The 2.0.x series has
     dnl problems (bold fonts, --remote doesn't work).
-    AM_PATH_GTK(2.2.0,
+    AM_PATH_GTK(2.4.0,
 		[GUI_LIB_LOC="$GTK_LIBDIR"
 		 GTK_LIBNAME="$GTK_LIBS"
 		 GUI_INC_LOC="$GTK_CFLAGS"])
-    if test -n "$GTK_CFLAGS"; then
+    if test "x$GTK_CFLAGS" != "x"; then
+      SKIP_GTK3=YES
+      SKIP_GTK4=YES
       SKIP_MOTIF=YES
-      GUITYPE=GTK
+      GUITYPE=GTK2
       AC_SUBST(GTK_LIBNAME)
     fi
   fi
-  if test "x$GUITYPE" = "xGTK"; then
+  if test "x$GUITYPE" = "xGTK2"; then
     dnl
-    dnl if GTK exists, then check for GNOME.
+    dnl if GTK2 exists, then check for GNOME.
     dnl
     if test -z "$SKIP_GNOME"; then
     {
@@ -2903,9 +2934,46 @@ if test -z "$SKIP_GTK2"; then
   fi
 fi
 
+dnl ---------------------------------------------------------------------------
+dnl Check for GTK4.
+dnl ---------------------------------------------------------------------------
+if test -z "$SKIP_GTK4"; then
+  AC_MSG_CHECKING(--disable-gtktest argument)
+  AC_ARG_ENABLE(gtktest, [  --disable-gtktest       Do not try to compile and run a test GTK program],
+	, enable_gtktest=yes)
+  if test "x$enable_gtktest" = "xyes" ; then
+    AC_MSG_RESULT(gtk test enabled)
+  else
+    AC_MSG_RESULT(gtk test disabled)
+  fi
+
+  if test "x$PKG_CONFIG" != "xno"; then
+    save_skip_gtk2=$SKIP_GTK2
+    save_skip_gtk3=$SKIP_GTK3
+    SKIP_GTK2=YES
+    SKIP_GTK3=YES
+    AM_PATH_GTK(4.0.0,
+		[GUI_LIB_LOC="$GTK_LIBDIR"
+		 GTK_LIBNAME="$GTK_LIBS"
+		 GUI_INC_LOC="$GTK_CFLAGS"])
+    if test "x$GTK_CFLAGS" != "x"; then
+      SKIP_GTK2=YES
+      SKIP_GTK3=YES
+      SKIP_GNOME=YES
+      SKIP_MOTIF=YES
+      GUITYPE=GTK4
+      AC_SUBST(GTK_LIBNAME)
+      AC_DEFINE(USE_GTK4)
+    else
+      SKIP_GTK2=$save_skip_gtk2
+      SKIP_GTK3=$save_skip_gtk3
+    fi
+  fi
+fi
+
 dnl Check the version of Gdk-Pixbuf.  If the version is 2.31 or later and
 dnl glib-compile-resources is found in PATH, use GResource.
-if test "x$GUITYPE" = "xGTK"; then
+if test "x$GUITYPE" = "xGTK2" -o "x$GUITYPE" = "xGTK3" -o "x$GUITYPE" = "xGTK4"; then
   AC_MSG_CHECKING([version of Gdk-Pixbuf])
   gdk_pixbuf_version=`$PKG_CONFIG --modversion gdk-pixbuf-2.0`
   if test "x$gdk_pixbuf_version" != x ; then
@@ -3123,7 +3191,7 @@ if test "$enable_xsmp" = "yes"; then
 fi
 
 
-if test -z "$SKIP_MOTIF" -o -z "$SKIP_GTK2" -o -z "$SKIP_GTK3"; then
+if test -z "$SKIP_MOTIF" -o -z "$SKIP_GTK2" -o -z "$SKIP_GTK3" -o -z "$SKIP_GTK4"; then
   dnl Check for X11/xpm.h and X11/Sunkeysym.h with the GUI include path
   cppflags_save=$CPPFLAGS
   CPPFLAGS="$CPPFLAGS $X_CFLAGS"
@@ -3139,9 +3207,9 @@ if test -z "$SKIP_MOTIF" -o -z "$SKIP_GTK2" -o -z "$SKIP_GTK3"; then
   CPPFLAGS=$cppflags_save
 
   dnl automatically enable XIM in the GUI
-  if test "$enable_xim" = "auto" -a "x$GUITYPE" != "xNONE" ; then
-    AC_MSG_RESULT(X GUI selected; xim has been enabled)
-    enable_xim="yes"
+  if test "$enable_xim" = "auto" -a "x$GUITYPE" != "xNONE"; then
+	AC_MSG_RESULT(X-compatible GUI selected; xim has been enabled)
+	enable_xim="yes"
   fi
 fi
 
@@ -3191,9 +3259,11 @@ if test "x$GUITYPE" = "xNONE" -a "$enable_fontset" = "yes"; then
   AC_MSG_RESULT(no GUI selected; fontset has been disabled)
   enable_fontset="no"
 fi
-if test "x$GUITYPE:$enable_fontset" = "xGTK:yes"; then
-  AC_MSG_RESULT(GTK+ 2 GUI selected; fontset has been disabled)
-  enable_fontset="no"
+if test "x$enable_fontset" = "xyes"; then
+  if test "x$GUITYPE" = "xGTK2" -o "x$GUITYPE" = "xGTK3" -o  "x$GUITYPE" = "xGTK4"; then
+	AC_MSG_RESULT(GTK+ GUI selected; fontset has been disabled)
+	enable_fontset="no"
+  fi
 fi
 
 dnl There is no test for the Haiku GUI, if it's selected it's used
@@ -3216,7 +3286,9 @@ fi
 
 dnl defining FEAT_XIM and FEAT_XFONTSET is delayed, so that they can be disabled
 if test "$enable_xim" = "yes"; then
-  AC_DEFINE(FEAT_XIM)
+  if test "x$GUITYPE" != "xGTK4"; then
+	AC_DEFINE(FEAT_XIM)
+  fi
 fi
 if test "$enable_fontset" = "yes"; then
   AC_DEFINE(FEAT_XFONTSET)

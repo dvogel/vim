@@ -1,0 +1,14 @@
+set background=dark
+highlight Normal guifg=black guibg=black
+colorscheme desert
+syntax on
+
+setlocal noswapfile
+setlocal buftype=nofile
+split
+botright vsplit
+set toolbar=tooltips,icons
+set guioptions=migtrlbhT
+" set guioptions-=rlbhRL
+echo &guioptions
+" set guifont=Fira\ Code\ Normal\ 11

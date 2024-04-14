@@ -6754,7 +6754,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 	{"builtin_terms", 1},
 	{"all_builtin_terms", 1},
 	{"browsefilter",
-#if defined(FEAT_BROWSE) && (defined(USE_FILE_CHOOSER) \
+#if defined(FEAT_BROWSE) && (defined(FEAT_GUI_GTK) \
 	|| defined(FEAT_GUI_MSWIN) \
 	|| defined(FEAT_GUI_MOTIF))
 		1
@@ -6972,14 +6972,21 @@ f_has(typval_T *argvars, typval_T *rettv)
 #endif
 		},
 	{"gui_gtk2",
-#if defined(FEAT_GUI_GTK) && !defined(USE_GTK3)
+#if defined(FEAT_GUI_GTK) && !defined(USE_GTK3) && !defined(USE_GTK4)
 		1
 #else
 		0
 #endif
 		},
 	{"gui_gtk3",
-#if defined(FEAT_GUI_GTK) && defined(USE_GTK3)
+#if defined(FEAT_GUI_GTK) && defined(USE_GTK3) && !defined(USE_GTK4)
+		1
+#else
+		0
+#endif
+		},
+	{"gui_gtk4",
+#if defined(FEAT_GUI_GTK) && defined(USE_GTK4)
 		1
 #else
 		0
