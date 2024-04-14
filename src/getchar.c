@@ -2007,7 +2007,9 @@ vgetc(void)
 		    continue;
 		}
 #endif
-#if defined(FEAT_GUI) && defined(FEAT_GUI_GTK) && defined(FEAT_MENU)
+#if defined(FEAT_GUI) && defined(FEAT_GUI_GTK) && defined(FEAT_MENU) && !defined(USE_GTK4)
+		// TODO: GTK4 removed gtk_menu_shell_select_first. How can we re-implement this?
+
 		// GTK: <F10> normally selects the menu, but it's passed until
 		// here to allow mapping it.  Intercept and invoke the GTK
 		// behavior if it's not mapped.

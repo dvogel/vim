@@ -29,12 +29,21 @@
  *
  * With the help of Marius Gedminas and the word of Bram Moolenaar,
  * "Let's give this some time to mature."
+ *
+ * Support for GTK+4 was added and GTK+2 < 2.99 was removed by:
+ *
+ * 2024  Drew Vogel <drewpvogel@gmail.com>
  */
 
 #include "vim.h"
 
 #ifdef FEAT_GUI_GTK
-# include "gui_gtk_f.h"
+# ifdef USE_GTK4
+#  include "gui_gtk4_form.h"
+#  include "gui_gtk4_text_area.h"
+# else
+#  include "gui_gtk3_form.h"
+# endif
 #endif
 
 // GTK defines MAX and MIN, but some system header files as well.  Undefine
@@ -70,19 +79,25 @@
 #endif
 
 #ifdef FEAT_GUI_GTK
-# if GTK_CHECK_VERSION(3,0,0)
+# if GTK_CHECK_VERSION(4,0,0)
+#  include <gdk/gdkkeysyms.h>
+# elif GTK_CHECK_VERSION(3,0,0)
 #  include <gdk/gdkkeysyms-compat.h>
 # else
 #  include <gdk/gdkkeysyms.h>
 # endif
 # include <gdk/gdk.h>
-# ifdef MSWIN
+# if defined(MSWIN)
 #  include <gdk/gdkwin32.h>
+# elif defined(USE_GTK4)
+#  include <gdk/gdk.h>
 # else
 #  include <gdk/gdkx.h>
 # endif
 
 # include <gtk/gtk.h>
+# include "gui_gtk_compat.h"
+# include "gui_gtk_common.h"
 #else
 // define these items to be able to generate prototypes without GTK
 typedef int GtkWidget;
@@ -101,121 +116,8 @@ typedef int GtkWidget;
 static void entry_activate_cb(GtkWidget *widget, gpointer data);
 static void entry_changed_cb(GtkWidget *entry, GtkWidget *dialog);
 static void find_replace_cb(GtkWidget *widget, gpointer data);
-#if defined(FEAT_BROWSE)
-static void recent_func_log_func(
-	const gchar *log_domain,
-	GLogLevelFlags log_level,
-	const gchar *message,
-	gpointer user_data);
-#endif
 
 #if defined(FEAT_TOOLBAR)
-/*
- * Table from BuiltIn## icon indices to GTK+ stock IDs.  Order must exactly
- * match toolbar_names[] in menu.c!  All stock icons including the "vim-*"
- * ones can be overridden in your gtkrc file.
- */
-# if GTK_CHECK_VERSION(3,10,0)
-static const char * const menu_themed_names[] =
-{
-    /* 00 */ "document-new",		// sub. GTK_STOCK_NEW
-    /* 01 */ "document-open",		// sub. GTK_STOCK_OPEN
-    /* 02 */ "document-save",		// sub. GTK_STOCK_SAVE
-    /* 03 */ "edit-undo",		// sub. GTK_STOCK_UNDO
-    /* 04 */ "edit-redo",		// sub. GTK_STOCK_REDO
-    /* 05 */ "edit-cut",		// sub. GTK_STOCK_CUT
-    /* 06 */ "edit-copy",		// sub. GTK_STOCK_COPY
-    /* 07 */ "edit-paste",		// sub. GTK_STOCK_PASTE
-    /* 08 */ "document-print",		// sub. GTK_STOCK_PRINT
-    /* 09 */ "help-browser",		// sub. GTK_STOCK_HELP
-    /* 10 */ "edit-find",		// sub. GTK_STOCK_FIND
-#  if GTK_CHECK_VERSION(3,14,0)
-    // Use the file names in gui_gtk_res.xml, cutting off the extension.
-    // Similar changes follow.
-    /* 11 */ "stock_vim_save_all",
-    /* 12 */ "stock_vim_session_save",
-    /* 13 */ "stock_vim_session_new",
-    /* 14 */ "stock_vim_session_load",
-#  else
-    /* 11 */ "vim-save-all",
-    /* 12 */ "vim-session-save",
-    /* 13 */ "vim-session-new",
-    /* 14 */ "vim-session-load",
-#  endif
-    /* 15 */ "system-run",		// sub. GTK_STOCK_EXECUTE
-    /* 16 */ "edit-find-replace",	// sub. GTK_STOCK_FIND_AND_REPLACE
-    /* 17 */ "window-close",		// sub. GTK_STOCK_CLOSE, FIXME: fuzzy
-#  if GTK_CHECK_VERSION(3,14,0)
-    /* 18 */ "stock_vim_window_maximize",
-    /* 19 */ "stock_vim_window_minimize",
-    /* 20 */ "stock_vim_window_split",
-    /* 21 */ "stock_vim_shell",
-#  else
-    /* 18 */ "vim-window-maximize",
-    /* 19 */ "vim-window-minimize",
-    /* 20 */ "vim-window-split",
-    /* 21 */ "vim-shell",
-#  endif
-    /* 22 */ "go-previous",		// sub. GTK_STOCK_GO_BACK
-    /* 23 */ "go-next",			// sub. GTK_STOCK_GO_FORWARD
-#  if GTK_CHECK_VERSION(3,14,0)
-    /* 24 */ "stock_vim_find_help",
-#  else
-    /* 24 */ "vim-find-help",
-#  endif
-    /* 25 */ "gtk-convert",		// sub. GTK_STOCK_CONVERT
-    /* 26 */ "go-jump",			// sub. GTK_STOCK_JUMP_TO
-#  if GTK_CHECK_VERSION(3,14,0)
-    /* 27 */ "stock_vim_build_tags",
-    /* 28 */ "stock_vim_window_split_vertical",
-    /* 29 */ "stock_vim_window_maximize_width",
-    /* 30 */ "stock_vim_window_minimize_width",
-#  else
-    /* 27 */ "vim-build-tags",
-    /* 28 */ "vim-window-split-vertical",
-    /* 29 */ "vim-window-maximize-width",
-    /* 30 */ "vim-window-minimize-width",
-#  endif
-    /* 31 */ "application-exit",	// GTK_STOCK_QUIT
-};
-# else // !GTK_CHECK_VERSION(3,10,0)
-static const char * const menu_stock_ids[] =
-{
-    /* 00 */ GTK_STOCK_NEW,
-    /* 01 */ GTK_STOCK_OPEN,
-    /* 02 */ GTK_STOCK_SAVE,
-    /* 03 */ GTK_STOCK_UNDO,
-    /* 04 */ GTK_STOCK_REDO,
-    /* 05 */ GTK_STOCK_CUT,
-    /* 06 */ GTK_STOCK_COPY,
-    /* 07 */ GTK_STOCK_PASTE,
-    /* 08 */ GTK_STOCK_PRINT,
-    /* 09 */ GTK_STOCK_HELP,
-    /* 10 */ GTK_STOCK_FIND,
-    /* 11 */ "vim-save-all",
-    /* 12 */ "vim-session-save",
-    /* 13 */ "vim-session-new",
-    /* 14 */ "vim-session-load",
-    /* 15 */ GTK_STOCK_EXECUTE,
-    /* 16 */ GTK_STOCK_FIND_AND_REPLACE,
-    /* 17 */ GTK_STOCK_CLOSE,		// FIXME: fuzzy
-    /* 18 */ "vim-window-maximize",
-    /* 19 */ "vim-window-minimize",
-    /* 20 */ "vim-window-split",
-    /* 21 */ "vim-shell",
-    /* 22 */ GTK_STOCK_GO_BACK,
-    /* 23 */ GTK_STOCK_GO_FORWARD,
-    /* 24 */ "vim-find-help",
-    /* 25 */ GTK_STOCK_CONVERT,
-    /* 26 */ GTK_STOCK_JUMP_TO,
-    /* 27 */ "vim-build-tags",
-    /* 28 */ "vim-window-split-vertical",
-    /* 29 */ "vim-window-maximize-width",
-    /* 30 */ "vim-window-minimize-width",
-    /* 31 */ GTK_STOCK_QUIT
-};
-# endif // !GTK_CHECK_VERSION(3,10,0)
-
 # ifdef USE_GRESOURCE
 #  if !GTK_CHECK_VERSION(3,10,0)
 typedef struct IconNames {
@@ -262,34 +164,9 @@ add_stock_icon(GtkIconFactory	*factory,
 }
 # endif
 
-    static int
-lookup_menu_iconfile(char_u *iconfile, char_u *dest)
-{
-    expand_env(iconfile, dest, MAXPATHL);
-
-    if (mch_isFullName(dest))
-    {
-	return vim_fexists(dest);
-    }
-    else
-    {
-	static const char   suffixes[][4] = {"png", "xpm", "bmp"};
-	char_u		    buf[MAXPATHL];
-	unsigned int	    i;
-
-	for (i = 0; i < G_N_ELEMENTS(suffixes); ++i)
-	    if (gui_find_bitmap(dest, buf, (char *)suffixes[i]) == OK)
-	    {
-		STRCPY(dest, buf);
-		return TRUE;
-	    }
-
-	return FALSE;
-    }
-}
-
-    static GtkWidget *
-load_menu_iconfile(char_u *name, GtkIconSize icon_size)
+#if 0
+    GtkWidget *
+gui_gtk_load_menu_iconfile(char_u *name, GtkIconSize icon_size)
 {
     GtkWidget	    *image = NULL;
 # if GTK_CHECK_VERSION(3,10,0)
@@ -360,50 +237,10 @@ load_menu_iconfile(char_u *name, GtkIconSize icon_size)
     return image;
 # endif // !GTK_CHECK_VERSION(3,10,0)
 }
+#endif
+#endif // FEAT_TOOLBAR
 
-    static GtkWidget *
-create_menu_icon(vimmenu_T *menu, GtkIconSize icon_size)
-{
-    GtkWidget	*image = NULL;
-    char_u	buf[MAXPATHL];
-
-    // First use a specified "icon=" argument.
-    if (menu->iconfile != NULL && lookup_menu_iconfile(menu->iconfile, buf))
-	image = load_menu_iconfile(buf, icon_size);
-
-    // If not found and not builtin specified try using the menu name.
-    if (image == NULL && !menu->icon_builtin
-				     && lookup_menu_iconfile(menu->name, buf))
-	image = load_menu_iconfile(buf, icon_size);
-
-    // Still not found?  Then use a builtin icon, a blank one as fallback.
-    if (image == NULL)
-    {
-# if GTK_CHECK_VERSION(3,10,0)
-	const char *icon_name = NULL;
-	const int   n_names = G_N_ELEMENTS(menu_themed_names);
-
-	if (menu->iconidx >= 0 && menu->iconidx < n_names)
-	    icon_name = menu_themed_names[menu->iconidx];
-	if (icon_name == NULL)
-	    icon_name = "image-missing";
-
-	image = gtk_image_new_from_icon_name(icon_name, icon_size);
-# else
-	const char  *stock_id;
-	const int   n_ids = G_N_ELEMENTS(menu_stock_ids);
-
-	if (menu->iconidx >= 0 && menu->iconidx < n_ids)
-	    stock_id = menu_stock_ids[menu->iconidx];
-	else
-	    stock_id = GTK_STOCK_MISSING_IMAGE;
-
-	image = gtk_image_new_from_stock(stock_id, icon_size);
-# endif
-    }
-
-    return image;
-}
+#if defined(FEAT_TOOLBAR)
 
     static gint
 toolbar_button_focus_in_event(GtkWidget *widget UNUSED,
@@ -415,12 +252,19 @@ toolbar_button_focus_in_event(GtkWidget *widget UNUSED,
     // <Tab> into GtkPlug) immediately pass it to mainwin.
     if (gtk_socket_id != 0)
 	gtk_widget_grab_focus(gui.drawarea);
-
     return TRUE;
 }
-#endif // FEAT_TOOLBAR
 
-#if defined(FEAT_TOOLBAR)
+    GtkIconTheme*
+gui_gtk_icon_theme_for_main_window(void)
+{
+    GdkScreen *screen;
+    if (GTK_IS_WIDGET(gui.mainwin))
+	screen = gtk_widget_get_screen(gui.mainwin);
+    else
+	screen = gdk_screen_get_default();
+    return gtk_icon_theme_get_for_screen(screen);
+}
 
     void
 gui_gtk_register_stock_icons(void)
@@ -453,14 +297,8 @@ gui_gtk_register_stock_icons(void)
 # else // defined(USE_GRESOURCE)
     const char * const path_prefix = "/org/vim/gui/icon";
 #  if GTK_CHECK_VERSION(3,14,0)
-    GdkScreen    *screen = NULL;
     GtkIconTheme *icon_theme = NULL;
-
-    if (GTK_IS_WIDGET(gui.mainwin))
-	screen = gtk_widget_get_screen(gui.mainwin);
-    else
-	screen = gdk_screen_get_default();
-    icon_theme = gtk_icon_theme_get_for_screen(screen);
+    icon_theme = gui_gtk_icon_theme_for_main_window();
     gtk_icon_theme_add_resource_path(icon_theme, path_prefix);
 #  elif GTK_CHECK_VERSION(3,0,0)
     IconNames *names;
@@ -533,63 +371,6 @@ gui_gtk_register_stock_icons(void)
 
 #if defined(FEAT_MENU)
 
-/*
- * Translate Vim's mnemonic tagging to GTK+ style and convert to UTF-8
- * if necessary.  The caller must vim_free() the returned string.
- *
- *	Input	Output
- *	_	__
- *	&&	&
- *	&	_	stripped if use_mnemonic == FALSE
- *	<Tab>		end of menu label text
- */
-    static char_u *
-translate_mnemonic_tag(char_u *name, int use_mnemonic)
-{
-    char_u  *buf;
-    char_u  *psrc;
-    char_u  *pdest;
-    int	    n_underscores = 0;
-
-    name = CONVERT_TO_UTF8(name);
-    if (name == NULL)
-	return NULL;
-
-    for (psrc = name; *psrc != NUL && *psrc != TAB; ++psrc)
-	if (*psrc == '_')
-	    ++n_underscores;
-
-    buf = alloc(psrc - name + n_underscores + 1);
-    if (buf != NULL)
-    {
-	pdest = buf;
-	for (psrc = name; *psrc != NUL && *psrc != TAB; ++psrc)
-	{
-	    if (*psrc == '_')
-	    {
-		*pdest++ = '_';
-		*pdest++ = '_';
-	    }
-	    else if (*psrc != '&')
-	    {
-		*pdest++ = *psrc;
-	    }
-	    else if (*(psrc + 1) == '&')
-	    {
-		*pdest++ = *psrc++;
-	    }
-	    else if (use_mnemonic)
-	    {
-		*pdest++ = '_';
-	    }
-	}
-	*pdest = NUL;
-    }
-
-    CONVERT_TO_UTF8_FREE(name);
-    return buf;
-}
-
     static void
 menu_item_new(vimmenu_T *menu, GtkWidget *parent_widget)
 {
@@ -609,7 +390,7 @@ menu_item_new(vimmenu_T *menu, GtkWidget *parent_widget)
 # endif
 
     use_mnemonic = (p_wak[0] != 'n' || !GTK_IS_MENU_BAR(parent_widget));
-    text = translate_mnemonic_tag(menu->name, use_mnemonic);
+    text = gui_gtk_translate_mnemonic_tag(menu->name, use_mnemonic);
 
     menu->label = gtk_label_new_with_mnemonic((const char *)text);
     vim_free(text);
@@ -621,8 +402,8 @@ menu_item_new(vimmenu_T *menu, GtkWidget *parent_widget)
 	text = CONVERT_TO_UTF8(menu->actext);
 
 	gtk_box_pack_end(GTK_BOX(box),
-			 gtk_label_new((const char *)text),
-			 FALSE, FALSE, 0);
+		gtk_label_new((const char *)text),
+		FALSE, FALSE, 0);
 
 	CONVERT_TO_UTF8_FREE(text);
     }
@@ -634,8 +415,8 @@ menu_item_new(vimmenu_T *menu, GtkWidget *parent_widget)
     void
 gui_mch_add_menu(vimmenu_T *menu, int idx)
 {
-    vimmenu_T	*parent;
-    GtkWidget	*parent_widget;
+    vimmenu_T   *parent;
+    GtkWidget   *parent_widget;
 
     if (menu->name[0] == ']' || menu_is_popup(menu->name))
     {
@@ -759,7 +540,7 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
 		GtkWidget *icon;
 		GtkToolItem *item;
 
-		icon = create_menu_icon(menu,
+		icon = gui_gtk_create_menu_icon(menu,
 			gtk_toolbar_get_icon_size(toolbar));
 		item = gtk_tool_button_new(icon, (const gchar *)text);
 		gtk_tool_item_set_tooltip_text(item, (const gchar *)tooltip);
@@ -777,15 +558,17 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
 		    (const char *)text,
 		    (const char *)tooltip,
 		    NULL,
-		    create_menu_icon(menu, gtk_toolbar_get_icon_size(toolbar)),
+		    gui_gtk_create_menu_icon(menu, gtk_toolbar_get_icon_size(toolbar)),
 		    G_CALLBACK(&menu_item_activate),
 		    menu,
 		    idx);
 #  endif
 
+#  ifndef USE_GTK4
 	    if (gtk_socket_id != 0)
 		g_signal_connect(G_OBJECT(menu->id), "focus-in-event",
 			G_CALLBACK(toolbar_button_focus_in_event), NULL);
+#  endif
 
 	    CONVERT_TO_UTF8_FREE(text);
 	    CONVERT_TO_UTF8_FREE(tooltip);
@@ -839,13 +622,6 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
 #endif // FEAT_MENU
 
 
-    void
-gui_mch_set_text_area_pos(int x, int y, int w, int h)
-{
-    gui_gtk_form_move_resize(GTK_FORM(gui.formwin), gui.drawarea, x, y, w, h);
-}
-
-
 #if defined(FEAT_MENU)
 /*
  * Enable or disable accelerators for the toplevel menus.
@@ -861,7 +637,7 @@ gui_gtk_set_mnemonics(int enable)
 	if (menu->id == NULL)
 	    continue;
 
-	name = translate_mnemonic_tag(menu->name, enable);
+	name = gui_gtk_translate_mnemonic_tag(menu->name, enable);
 	gtk_label_set_text_with_mnemonic(GTK_LABEL(menu->label),
 					 (const char *)name);
 	vim_free(name);
@@ -1001,42 +777,6 @@ gui_mch_destroy_menu(vimmenu_T *menu)
 #endif // FEAT_MENU
 
 
-/*
- * Scrollbar stuff.
- */
-    void
-gui_mch_set_scrollbar_thumb(scrollbar_T *sb, long val, long size, long max)
-{
-    if (sb->id == NULL)
-	return;
-
-    GtkAdjustment *adjustment;
-
-    // ignore events triggered by moving the thumb (happens in GTK 3)
-    ++hold_gui_events;
-
-    adjustment = gtk_range_get_adjustment(GTK_RANGE(sb->id));
-
-    gtk_adjustment_set_lower(adjustment, 0.0);
-    gtk_adjustment_set_value(adjustment, val);
-    gtk_adjustment_set_upper(adjustment, max + 1);
-    gtk_adjustment_set_page_size(adjustment, size);
-    gtk_adjustment_set_page_increment(adjustment,
-	    size < 3L ? 1L : size - 2L);
-    gtk_adjustment_set_step_increment(adjustment, 1.0);
-
-    g_signal_handler_block(G_OBJECT(adjustment), (gulong)sb->handler_id);
-
-    --hold_gui_events;
-
-#if !GTK_CHECK_VERSION(3,18,0)
-    gtk_adjustment_changed(adjustment);
-#endif
-
-    g_signal_handler_unblock(G_OBJECT(adjustment),
-	    (gulong)sb->handler_id);
-}
-
     void
 gui_mch_set_scrollbar_pos(scrollbar_T *sb, int x, int y, int w, int h)
 {
@@ -1145,17 +885,21 @@ adjustment_value_changed(GtkAdjustment *adjustment, gpointer data)
 gui_mch_create_scrollbar(scrollbar_T *sb, int orient)
 {
     if (orient == SBAR_HORIZ)
+    {
 #if GTK_CHECK_VERSION(3,2,0)
 	sb->id = gtk_scrollbar_new(GTK_ORIENTATION_HORIZONTAL, NULL);
 #else
 	sb->id = gtk_hscrollbar_new(NULL);
 #endif
+    }
     else if (orient == SBAR_VERT)
+    {
 #if GTK_CHECK_VERSION(3,2,0)
 	sb->id = gtk_scrollbar_new(GTK_ORIENTATION_VERTICAL, NULL);
 #else
 	sb->id = gtk_vscrollbar_new(NULL);
 #endif
+    }
 
     if (sb->id == NULL)
 	return;
@@ -1185,622 +929,7 @@ gui_mch_destroy_scrollbar(scrollbar_T *sb)
     gui_mch_update();
 }
 
-#if defined(FEAT_BROWSE)
-/*
- * Implementation of the file selector related stuff
- */
-
-/*
- * Put up a file requester.
- * Returns the selected name in allocated memory, or NULL for Cancel.
- * saving,			select file to write
- * title			title for the window
- * dflt				default name
- * ext				not used (extension added)
- * initdir			initial directory, NULL for current dir
- * filter			file name filter
- */
-    char_u *
-gui_mch_browse(int saving,
-	       char_u *title,
-	       char_u *dflt,
-	       char_u *ext UNUSED,
-	       char_u *initdir,
-	       char_u *filter)
-{
-# if GTK_CHECK_VERSION(3,20,0)
-    GtkFileChooserNative	*fc;
-# else
-    GtkWidget			*fc;
-# endif
-    char_u		dirbuf[MAXPATHL];
-    guint		log_handler;
-    const gchar		*domain = "Gtk";
-
-    title = CONVERT_TO_UTF8(title);
-
-    // GTK has a bug, it only works with an absolute path.
-    if (initdir == NULL || *initdir == NUL)
-	mch_dirname(dirbuf, MAXPATHL);
-    else if (vim_FullName(initdir, dirbuf, MAXPATHL - 2, FALSE) == FAIL)
-	dirbuf[0] = NUL;
-    // Always need a trailing slash for a directory.
-    add_pathsep(dirbuf);
-
-    // If our pointer is currently hidden, then we should show it.
-    gui_mch_mousehide(FALSE);
-
-    // Hack: The GTK file dialog warns when it can't access a new file, this
-    // makes it shut up. http://bugzilla.gnome.org/show_bug.cgi?id=664587
-    log_handler = g_log_set_handler(domain, G_LOG_LEVEL_WARNING,
-						  recent_func_log_func, NULL);
-
-    // We create the dialog each time, so that the button text can be "Open"
-    // or "Save" according to the action.
-# if GTK_CHECK_VERSION(3,20,0)
-    fc = gtk_file_chooser_native_new(
-# else
-    fc = gtk_file_chooser_dialog_new(
-# endif
-	    (const gchar *)title,
-	    GTK_WINDOW(gui.mainwin),
-	    saving ? GTK_FILE_CHOOSER_ACTION_SAVE
-					   : GTK_FILE_CHOOSER_ACTION_OPEN,
-# if GTK_CHECK_VERSION(3,20,0)
-	    saving ? _("_Save") : _("_Open"), _("_Cancel"));
-# else
-#  if GTK_CHECK_VERSION(3,10,0)
-	    _("_Cancel"), GTK_RESPONSE_CANCEL,
-	    saving ? _("_Save") : _("_Open"), GTK_RESPONSE_ACCEPT,
-#  else
-	    GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-	    saving ? GTK_STOCK_SAVE : GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
-#  endif
-	    NULL);
-# endif
-    gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(fc),
-						       (const gchar *)dirbuf);
-
-    if (filter != NULL && *filter != NUL)
-    {
-	int     i = 0;
-	char_u  *patt;
-	char_u  *p = filter;
-	GtkFileFilter	*gfilter;
-
-	gfilter = gtk_file_filter_new();
-	patt = alloc(STRLEN(filter));
-	while (p != NULL && *p != NUL)
-	{
-	    if (*p == '\n' || *p == ';' || *p == '\t')
-	    {
-		STRNCPY(patt, filter, i);
-		patt[i] = '\0';
-		if (*p == '\t')
-		    gtk_file_filter_set_name(gfilter, (gchar *)patt);
-		else
-		{
-		    gtk_file_filter_add_pattern(gfilter, (gchar *)patt);
-		    if (*p == '\n')
-		    {
-			gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(fc),
-								     gfilter);
-			if (*(p + 1) != NUL)
-			    gfilter = gtk_file_filter_new();
-		    }
-		}
-		filter = ++p;
-		i = 0;
-	    }
-	    else
-	    {
-		p++;
-		i++;
-	    }
-	}
-	vim_free(patt);
-    }
-    if (saving && dflt != NULL && *dflt != NUL)
-	gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(fc), (char *)dflt);
-
-    gui.browse_fname = NULL;
-# if GTK_CHECK_VERSION(3,20,0)
-    if (gtk_native_dialog_run(GTK_NATIVE_DIALOG(fc)) == GTK_RESPONSE_ACCEPT)
-# else
-    if (gtk_dialog_run(GTK_DIALOG(fc)) == GTK_RESPONSE_ACCEPT)
-# endif
-    {
-	char *filename;
-
-	filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(fc));
-	gui.browse_fname = (char_u *)g_strdup(filename);
-	g_free(filename);
-    }
-# if GTK_CHECK_VERSION(3,20,0)
-    g_object_unref(fc);
-# else
-    gtk_widget_destroy(GTK_WIDGET(fc));
-# endif
-
-    g_log_remove_handler(domain, log_handler);
-
-    CONVERT_TO_UTF8_FREE(title);
-    if (gui.browse_fname == NULL)
-	return NULL;
-
-    // shorten the file name if possible
-    return vim_strsave(shorten_fname1(gui.browse_fname));
-}
-
-/*
- * Put up a directory selector
- * Returns the selected name in allocated memory, or NULL for Cancel.
- * title			title for the window
- * dflt				default name
- * initdir			initial directory, NULL for current dir
- */
-    char_u *
-gui_mch_browsedir(
-	       char_u *title,
-	       char_u *initdir)
-{
-# if defined(GTK_FILE_CHOOSER)	    // Only in GTK 2.4 and later.
-    char_u		dirbuf[MAXPATHL];
-    char_u		*p;
-    GtkWidget		*dirdlg;	    // file selection dialog
-    char_u		*dirname = NULL;
-
-    title = CONVERT_TO_UTF8(title);
-
-    dirdlg = gtk_file_chooser_dialog_new(
-	    (const gchar *)title,
-	    GTK_WINDOW(gui.mainwin),
-	    GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-#  if GTK_CHECK_VERSION(3,10,0)
-	    _("_Cancel"), GTK_RESPONSE_CANCEL,
-	    _("_OK"), GTK_RESPONSE_ACCEPT,
-#  else
-	    GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-	    GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
-#  endif
-	    NULL);
-
-    CONVERT_TO_UTF8_FREE(title);
-
-    // if our pointer is currently hidden, then we should show it.
-    gui_mch_mousehide(FALSE);
-
-    // GTK appears to insist on an absolute path.
-    if (initdir == NULL || *initdir == NUL
-	       || vim_FullName(initdir, dirbuf, MAXPATHL - 10, FALSE) == FAIL)
-	mch_dirname(dirbuf, MAXPATHL - 10);
-
-    // Always need a trailing slash for a directory.
-    // Also add a dummy file name, so that we get to the directory.
-    add_pathsep(dirbuf);
-    STRCAT(dirbuf, "@zd(*&1|");
-    gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dirdlg),
-						      (const gchar *)dirbuf);
-
-    // Run the dialog.
-    if (gtk_dialog_run(GTK_DIALOG(dirdlg)) == GTK_RESPONSE_ACCEPT)
-	dirname = (char_u *)gtk_file_chooser_get_filename(
-						    GTK_FILE_CHOOSER(dirdlg));
-    gtk_widget_destroy(dirdlg);
-    if (dirname == NULL)
-	return NULL;
-
-    // shorten the file name if possible
-    p = vim_strsave(shorten_fname1(dirname));
-    g_free(dirname);
-    return p;
-
-# else // !defined(GTK_FILE_CHOOSER)
-    // For GTK 2.2 and earlier: fall back to ordinary file selector.
-    return gui_mch_browse(0, title, NULL, NULL, initdir, NULL);
-# endif // !defined(GTK_FILE_CHOOSER)
-}
-
-
-#endif	// FEAT_BROWSE
-
-#if defined(FEAT_GUI_DIALOG)
-
-    static GtkWidget *
-create_message_dialog(int type, char_u *title, char_u *message)
-{
-    GtkWidget	    *dialog;
-    GtkMessageType  message_type;
-
-    switch (type)
-    {
-	case VIM_ERROR:	    message_type = GTK_MESSAGE_ERROR;	 break;
-	case VIM_WARNING:   message_type = GTK_MESSAGE_WARNING;	 break;
-	case VIM_QUESTION:  message_type = GTK_MESSAGE_QUESTION; break;
-	default:	    message_type = GTK_MESSAGE_INFO;	 break;
-    }
-
-    message = CONVERT_TO_UTF8(message);
-    dialog  = gtk_message_dialog_new(GTK_WINDOW(gui.mainwin),
-				     GTK_DIALOG_DESTROY_WITH_PARENT,
-				     message_type,
-				     GTK_BUTTONS_NONE,
-				     "%s", (const char *)message);
-    CONVERT_TO_UTF8_FREE(message);
-
-    if (title != NULL)
-    {
-	title = CONVERT_TO_UTF8(title);
-	gtk_window_set_title(GTK_WINDOW(dialog), (const char *)title);
-	CONVERT_TO_UTF8_FREE(title);
-    }
-    else if (type == VIM_GENERIC)
-    {
-	gtk_window_set_title(GTK_WINDOW(dialog), "VIM");
-    }
-
-    return dialog;
-}
-
-/*
- * Split up button_string into individual button labels by inserting
- * NUL bytes.  Also replace the Vim-style mnemonic accelerator prefix
- * '&' with '_'.  button_string must point to allocated memory!
- * Return an allocated array of pointers into button_string.
- */
-    static char **
-split_button_string(char_u *button_string, int *n_buttons)
-{
-    char	    **array;
-    char_u	    *p;
-    unsigned int    count = 1;
-
-    for (p = button_string; *p != NUL; ++p)
-	if (*p == DLG_BUTTON_SEP)
-	    ++count;
-
-    array = ALLOC_MULT(char *, count + 1);
-    count = 0;
-
-    if (array != NULL)
-    {
-	array[count++] = (char *)button_string;
-	for (p = button_string; *p != NUL; )
-	{
-	    if (*p == DLG_BUTTON_SEP)
-	    {
-		*p++ = NUL;
-		array[count++] = (char *)p;
-	    }
-	    else if (*p == DLG_HOTKEY_CHAR)
-		*p++ = '_';
-	    else
-		MB_PTR_ADV(p);
-	}
-	array[count] = NULL; // currently not relied upon, but doesn't hurt
-    }
-
-    *n_buttons = count;
-    return array;
-}
-
-    static char **
-split_button_translation(const char *message)
-{
-    char    **buttons = NULL;
-    char_u  *str;
-    int	    n_buttons = 0;
-    int	    n_expected = 1;
-
-    for (str = (char_u *)message; *str != NUL; ++str)
-	if (*str == DLG_BUTTON_SEP)
-	    ++n_expected;
-
-    str = (char_u *)_(message);
-    if (str != NULL)
-    {
-	if (output_conv.vc_type != CONV_NONE)
-	    str = string_convert(&output_conv, str, NULL);
-	else
-	    str = vim_strsave(str);
-
-	if (str != NULL)
-	    buttons = split_button_string(str, &n_buttons);
-    }
-    /*
-     * Uh-oh... this should never ever happen.	But we don't wanna crash
-     * if the translation is broken, thus fall back to the untranslated
-     * buttons string in case of emergency.
-     */
-    if (buttons == NULL || n_buttons != n_expected)
-    {
-	vim_free(buttons);
-	vim_free(str);
-	buttons = NULL;
-	str = vim_strsave((char_u *)message);
-
-	if (str != NULL)
-	    buttons = split_button_string(str, &n_buttons);
-	if (buttons == NULL)
-	    vim_free(str);
-    }
-
-    return buttons;
-}
-
-    static int
-button_equal(const char *a, const char *b)
-{
-    while (*a != '\0' && *b != '\0')
-    {
-	if (*a == '_' && *++a == '\0')
-	    break;
-	if (*b == '_' && *++b == '\0')
-	    break;
-
-	if (g_unichar_tolower(g_utf8_get_char(a))
-		!= g_unichar_tolower(g_utf8_get_char(b)))
-	    return FALSE;
-
-	a = g_utf8_next_char(a);
-	b = g_utf8_next_char(b);
-    }
-
-    return (*a == '\0' && *b == '\0');
-}
-
-    static void
-dialog_add_buttons(GtkDialog *dialog, char_u *button_string)
-{
-    char    **ok;
-    char    **ync;  // "yes no cancel"
-    char    **buttons;
-    int	    n_buttons = 0;
-    int	    idx;
-
-    button_string = vim_strsave(button_string); // must be writable
-    if (button_string == NULL)
-	return;
-
-    // Check 'v' flag in 'guioptions': vertical button placement.
-    if (vim_strchr(p_go, GO_VERTICAL) != NULL)
-    {
-# if GTK_CHECK_VERSION(3,0,0)
-	// Add GTK+ 3 code if necessary.
-	// N.B. GTK+ 3 doesn't allow you to access vbox and action_area via
-	// the C API.
-# else
-	GtkWidget	*vbutton_box;
-
-	vbutton_box = gtk_vbutton_box_new();
-	gtk_widget_show(vbutton_box);
-	gtk_box_pack_end(GTK_BOX(GTK_DIALOG(dialog)->vbox),
-						 vbutton_box, TRUE, FALSE, 0);
-	// Overrule the "action_area" value, hopefully this works...
-	GTK_DIALOG(dialog)->action_area = vbutton_box;
-# endif
-    }
-
-    /*
-     * Yes this is ugly, I don't particularly like it either.  But doing it
-     * this way has the compelling advantage that translations need not to
-     * be touched at all.  See below what 'ok' and 'ync' are used for.
-     */
-    ok	    = split_button_translation(N_("&Ok"));
-    ync     = split_button_translation(N_("&Yes\n&No\n&Cancel"));
-    buttons = split_button_string(button_string, &n_buttons);
-
-    /*
-     * Yes, the buttons are in reversed order to match the GNOME 2 desktop
-     * environment.  Don't hit me -- it's all about consistency.
-     * Well, apparently somebody changed his mind: with GTK 2.2.4 it works the
-     * other way around...
-     */
-    for (idx = 1; idx <= n_buttons; ++idx)
-    {
-	char	*label;
-	char_u	*label8;
-
-	label = buttons[idx - 1];
-	/*
-	 * Perform some guesswork to find appropriate stock items for the
-	 * buttons.  We have to compare with a sample of the translated
-	 * button string to get things right.  Yes, this is hackish :/
-	 *
-	 * But even the common button labels aren't necessarily translated,
-	 * since anyone can create their own dialogs using Vim functions.
-	 * Thus we have to check for those too.
-	 */
-	if (ok != NULL && ync != NULL) // almost impossible to fail
-	{
-# if GTK_CHECK_VERSION(3,10,0)
-	    if	    (button_equal(label, ok[0]))    label = _("OK");
-	    else if (button_equal(label, ync[0]))   label = _("Yes");
-	    else if (button_equal(label, ync[1]))   label = _("No");
-	    else if (button_equal(label, ync[2]))   label = _("Cancel");
-	    else if (button_equal(label, "Ok"))     label = _("OK");
-	    else if (button_equal(label, "Yes"))    label = _("Yes");
-	    else if (button_equal(label, "No"))     label = _("No");
-	    else if (button_equal(label, "Cancel")) label = _("Cancel");
-# else
-	    if	    (button_equal(label, ok[0]))    label = GTK_STOCK_OK;
-	    else if (button_equal(label, ync[0]))   label = GTK_STOCK_YES;
-	    else if (button_equal(label, ync[1]))   label = GTK_STOCK_NO;
-	    else if (button_equal(label, ync[2]))   label = GTK_STOCK_CANCEL;
-	    else if (button_equal(label, "Ok"))     label = GTK_STOCK_OK;
-	    else if (button_equal(label, "Yes"))    label = GTK_STOCK_YES;
-	    else if (button_equal(label, "No"))     label = GTK_STOCK_NO;
-	    else if (button_equal(label, "Cancel")) label = GTK_STOCK_CANCEL;
-# endif
-	}
-	label8 = CONVERT_TO_UTF8((char_u *)label);
-	gtk_dialog_add_button(dialog, (const gchar *)label8, idx);
-	CONVERT_TO_UTF8_FREE(label8);
-    }
-
-    if (ok != NULL)
-	vim_free(*ok);
-    if (ync != NULL)
-	vim_free(*ync);
-    vim_free(ok);
-    vim_free(ync);
-    vim_free(buttons);
-    vim_free(button_string);
-}
-
-/*
- * Allow mnemonic accelerators to be activated without pressing <Alt>.
- * I'm not sure if it's a wise idea to do this.  However, the old GTK+ 1.2
- * GUI used to work this way, and I consider the impact on UI consistency
- * low enough to justify implementing this as a special Vim feature.
- */
-typedef struct _DialogInfo
-{
-    int		ignore_enter;	    // no default button, ignore "Enter"
-    int		noalt;		    // accept accelerators without Alt
-    GtkDialog	*dialog;	    // Widget of the dialog
-} DialogInfo;
-
-    static gboolean
-dialog_key_press_event_cb(GtkWidget *widget, GdkEventKey *event, gpointer data)
-{
-    DialogInfo *di = (DialogInfo *)data;
-
-    // Ignore hitting Enter (or Space) when there is no default button.
-    if (di->ignore_enter && (event->keyval == GDK_Return
-						     || event->keyval == ' '))
-	return TRUE;
-    else    // A different key was pressed, return to normal behavior
-	di->ignore_enter = FALSE;
-
-    // Close the dialog when hitting "Esc".
-    if (event->keyval == GDK_Escape)
-    {
-	gtk_dialog_response(di->dialog, GTK_RESPONSE_REJECT);
-	return TRUE;
-    }
-
-    if (di->noalt
-	      && (event->state & gtk_accelerator_get_default_mod_mask()) == 0)
-    {
-	return gtk_window_mnemonic_activate(
-		   GTK_WINDOW(widget), event->keyval,
-		   gtk_window_get_mnemonic_modifier(GTK_WINDOW(widget)));
-    }
-
-    return FALSE; // continue emission
-}
-
-    int
-gui_mch_dialog(int	type,	    // type of dialog
-	       char_u	*title,	    // title of dialog
-	       char_u	*message,   // message text
-	       char_u	*buttons,   // names of buttons
-	       int	def_but,    // default button
-	       char_u	*textfield, // text for textfield or NULL
-	       int	ex_cmd UNUSED)
-{
-    GtkWidget	*dialog;
-    GtkWidget	*entry = NULL;
-    char_u	*text;
-    int		response;
-    DialogInfo  dialoginfo;
-
-    dialog = create_message_dialog(type, title, message);
-    dialoginfo.dialog = GTK_DIALOG(dialog);
-    dialog_add_buttons(GTK_DIALOG(dialog), buttons);
-    gtk_window_set_type_hint(GTK_WINDOW(dialog),
-			     GDK_WINDOW_TYPE_HINT_POPUP_MENU);
-
-    if (textfield != NULL)
-    {
-	GtkWidget *alignment;
-
-	entry = gtk_entry_new();
-	gtk_widget_show(entry);
-
-	// Make Enter work like pressing OK.
-	gtk_entry_set_activates_default(GTK_ENTRY(entry), TRUE);
-
-	text = CONVERT_TO_UTF8(textfield);
-	gtk_entry_set_text(GTK_ENTRY(entry), (const char *)text);
-	CONVERT_TO_UTF8_FREE(text);
-
-# if GTK_CHECK_VERSION(3,14,0)
-	gtk_widget_set_halign(GTK_WIDGET(entry), GTK_ALIGN_CENTER);
-	gtk_widget_set_valign(GTK_WIDGET(entry), GTK_ALIGN_CENTER);
-	gtk_widget_set_hexpand(GTK_WIDGET(entry), TRUE);
-	gtk_widget_set_vexpand(GTK_WIDGET(entry), TRUE);
-
-	alignment = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-# else
-	alignment = gtk_alignment_new((float)0.5, (float)0.5,
-						      (float)1.0, (float)1.0);
-# endif
-	gtk_container_add(GTK_CONTAINER(alignment), entry);
-	gtk_container_set_border_width(GTK_CONTAINER(alignment), 5);
-	gtk_widget_show(alignment);
-
-# if GTK_CHECK_VERSION(3,0,0)
-	{
-	    GtkWidget * const vbox
-		= gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-	    gtk_box_pack_start(GTK_BOX(vbox),
-		    alignment, TRUE, FALSE, 0);
-	}
-# else
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox),
-			   alignment, TRUE, FALSE, 0);
-# endif
-	dialoginfo.noalt = FALSE;
-    }
-    else
-	dialoginfo.noalt = TRUE;
-
-    // Allow activation of mnemonic accelerators without pressing <Alt> when
-    // there is no textfield.  Handle pressing Esc.
-    g_signal_connect(G_OBJECT(dialog), "key-press-event",
-			 G_CALLBACK(&dialog_key_press_event_cb), &dialoginfo);
-
-    if (def_but > 0)
-    {
-	gtk_dialog_set_default_response(GTK_DIALOG(dialog), def_but);
-	dialoginfo.ignore_enter = FALSE;
-    }
-    else
-	// No default button, ignore pressing Enter.
-	dialoginfo.ignore_enter = TRUE;
-
-    // Show the mouse pointer if it's currently hidden.
-    gui_mch_mousehide(FALSE);
-
-    response = gtk_dialog_run(GTK_DIALOG(dialog));
-
-    // GTK_RESPONSE_NONE means the dialog was programmatically destroyed.
-    if (response != GTK_RESPONSE_NONE)
-    {
-	if (response == GTK_RESPONSE_ACCEPT)	    // Enter pressed
-	    response = def_but;
-	if (textfield != NULL)
-	{
-	    text = (char_u *)gtk_entry_get_text(GTK_ENTRY(entry));
-	    text = CONVERT_FROM_UTF8(text);
-
-	    vim_strncpy(textfield, text, IOSIZE - 1);
-
-	    CONVERT_FROM_UTF8_FREE(text);
-	}
-	gtk_widget_destroy(dialog);
-    }
-
-    return response > 0 ? response : 0;
-}
-
-#endif // FEAT_GUI_DIALOG
-
-
 #if defined(FEAT_MENU)
-
     void
 gui_mch_show_popupmenu(vimmenu_T *menu)
 {
@@ -1841,6 +970,7 @@ gui_mch_show_popupmenu(vimmenu_T *menu)
 
 # if GTK_CHECK_VERSION(3,22,2)
     {
+	// TODO GTK4: We cannot trigger events
 	GdkEventButton trigger;
 
 	// A pseudo event to have gtk_menu_popup_at_pointer() work. Since the
@@ -1988,10 +1118,23 @@ typedef struct _SharedFindReplace
     GtkWidget *find;	// 'Find Next' action button
     GtkWidget *replace;	// 'Replace With' action button
     GtkWidget *all;	// 'Replace All' action button
+#ifdef USE_GTK4
+    GtkEventControllerKey *key_events
+#endif
 } SharedFindReplace;
 
-static SharedFindReplace find_widgets = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-static SharedFindReplace repl_widgets = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+static SharedFindReplace find_widgets = {
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+#ifdef USE_GTK4
+    , NULL
+#endif
+};
+static SharedFindReplace repl_widgets = {
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+#ifdef USE_GTK4
+    , NULL
+#endif
+};
 
     static int
 find_key_press_event(
@@ -2005,7 +1148,7 @@ find_key_press_event(
 	return FALSE;
 
     // the Escape key synthesizes a cancellation action
-    if (event->keyval == GDK_Escape)
+    if (event->keyval == GDK_KEY_Escape)
     {
 	gtk_widget_hide(frdp->dialog);
 
@@ -2046,9 +1189,7 @@ create_image_button(const char *stock_id,
 			   gtk_image_new_from_stock(stock_id, GTK_ICON_SIZE_BUTTON),
 			   FALSE, FALSE, 0);
 #endif
-    gtk_box_pack_start(GTK_BOX(box),
-		       gtk_label_new((const char *)text),
-		       FALSE, FALSE, 0);
+    gtk_box_prepend(GTK_BOX(box), gtk_label_new((const char *)text));
 
     CONVERT_TO_UTF8_FREE(text);
 
@@ -2059,34 +1200,18 @@ create_image_button(const char *stock_id,
     gtk_widget_set_vexpand(GTK_WIDGET(box), TRUE);
 
     alignment = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_prepend(GTK_BOX(alignment), box);
 #else
     alignment = gtk_alignment_new((float)0.5, (float)0.5,
 						      (float)0.0, (float)0.0);
-#endif
     gtk_container_add(GTK_CONTAINER(alignment), box);
-    gtk_widget_show_all(alignment);
+#endif
 
     button = gtk_button_new();
     gtk_container_add(GTK_CONTAINER(button), alignment);
+    gtk_widget_show_all(button);
 
     return button;
-}
-
-/*
- * This is currently only used by find_replace_dialog_create(), and
- * I'd really like to keep it at that.	In other words: don't spread
- * this nasty hack all over the code.  Think twice.
- */
-    static const char *
-convert_localized_message(char_u **buffer, const char *message)
-{
-    if (output_conv.vc_type == CONV_NONE)
-	return message;
-
-    vim_free(*buffer);
-    *buffer = string_convert(&output_conv, (char_u *)message, NULL);
-
-    return (const char *)*buffer;
 }
 
 /*
@@ -2119,7 +1244,28 @@ entry_get_text_length(GtkEntry *entry)
 }
 
     static void
-find_replace_dialog_create(char_u *arg, int do_replace)
+add_button_to_dialog(
+    GtkWidget *area,
+    GtkWidget *button,
+    gboolean  sensitive
+)
+{
+    gtk_widget_set_sensitive(button, sensitive);
+    gtk_box_pack_start(GTK_BOX(area), button, FALSE, FALSE, 0);
+}
+
+    static gboolean
+find_replace_dialog_direction_is_down(SharedFindReplace *frdp)
+{
+#ifdef USE_GTK4
+    return gtk_check_button_get_active(GTK_CHECK_BUTTON(frdp->down));
+#else
+    return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(frdp->down));
+#endif
+}
+
+    void
+gui_gtk_find_replace_dialog_create(char_u *arg, int do_replace)
 {
     GtkWidget	*hbox;		// main top down box
     GtkWidget	*actionarea;
@@ -2132,7 +1278,7 @@ find_replace_dialog_create(char_u *arg, int do_replace)
     int		wword = FALSE;
     int		mcase = !p_ic;
     char_u	*conv_buffer = NULL;
-#   define CONV(message) convert_localized_message(&conv_buffer, (message))
+#   define CONV(message) gui_gtk_convert_localized_message(&conv_buffer, (message))
 
     frdp = (do_replace) ? (&repl_widgets) : (&find_widgets);
 
@@ -2173,6 +1319,8 @@ find_replace_dialog_create(char_u *arg, int do_replace)
     }
 
     frdp->dialog = gtk_dialog_new();
+    gtk_widget_set_name(GTK_WIDGET(frdp->dialog), "find-and-replace-dialog");
+
 #if GTK_CHECK_VERSION(3,0,0)
     // Nothing equivalent to gtk_dialog_set_has_separator() in GTK+ 3.
 #else
@@ -2195,6 +1343,7 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 #if GTK_CHECK_VERSION(3,2,0)
     hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
+    gtk_widget_set_name(hbox, "find-and-replace-field-layout");
 #else
     hbox = gtk_hbox_new(FALSE, 0);
 #endif
@@ -2203,26 +1352,39 @@ find_replace_dialog_create(char_u *arg, int do_replace)
     {
 	GtkWidget * const dialog_vbox
 	    = gtk_dialog_get_content_area(GTK_DIALOG(frdp->dialog));
-	gtk_container_add(GTK_CONTAINER(dialog_vbox), hbox);
+	gtk_box_append(GTK_BOX(dialog_vbox), hbox);
     }
 #else
     gtk_container_add(GTK_CONTAINER(GTK_DIALOG(frdp->dialog)->vbox), hbox);
 #endif
 
     if (do_replace)
+    {
 #if GTK_CHECK_VERSION(3,4,0)
 	table = gtk_grid_new();
+	gtk_widget_set_hexpand(table, TRUE);
 #else
 	table = gtk_table_new(1024, 4, FALSE);
 #endif
+    }
     else
+    {
 #if GTK_CHECK_VERSION(3,4,0)
 	table = gtk_grid_new();
+	gtk_widget_set_hexpand(table, TRUE);
 #else
 	table = gtk_table_new(1024, 3, FALSE);
 #endif
-    gtk_box_pack_start(GTK_BOX(hbox), table, TRUE, TRUE, 0);
+    }
+    gtk_box_prepend(GTK_BOX(hbox), table);
     gtk_container_set_border_width(GTK_CONTAINER(table), 4);
+
+#if GTK_CHECK_VERSION(3,2,0)
+    tmp = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
+#else
+    tmp = gtk_vseparator_new();
+#endif
+    gtk_box_append(GTK_BOX(hbox), tmp);
 
     tmp = gtk_label_new(CONV(_("Find what:")));
 #if GTK_CHECK_VERSION(3,16,0)
@@ -2300,9 +1462,11 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 	g_signal_connect(G_OBJECT(frdp->with), "activate",
 			 G_CALLBACK(find_replace_cb),
 			 GINT_TO_POINTER(FRD_R_FINDNEXT));
+
 	g_signal_connect_after(G_OBJECT(frdp->with), "key-press-event",
 			       G_CALLBACK(find_key_press_event),
 			       (gpointer) frdp);
+
 #if GTK_CHECK_VERSION(3,4,0)
 	gtk_grid_attach(GTK_GRID(table), frdp->with, 2, 1, 5, 1);
 #else
@@ -2391,13 +1555,19 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 
     // 'Up' and 'Down' buttons
     frdp->up = gtk_radio_button_new_with_label(NULL, CONV(_("Up")));
-    gtk_box_pack_start(GTK_BOX(vbox), frdp->up, TRUE, TRUE, 0);
+    gtk_box_prepend(GTK_BOX(vbox), frdp->up);
+
     frdp->down = gtk_radio_button_new_with_label(
 			gtk_radio_button_get_group(GTK_RADIO_BUTTON(frdp->up)),
 			CONV(_("Down")));
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(frdp->down), TRUE);
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 2);
-    gtk_box_pack_start(GTK_BOX(vbox), frdp->down, TRUE, TRUE, 0);
+    gtk_box_prepend(GTK_BOX(vbox), frdp->down);
+
+#if GTK_CHECK_VERSION(3,2,0)
+    gtk_widget_set_vexpand(frdp->up, TRUE);
+    gtk_widget_set_vexpand(frdp->down, TRUE);
+#endif
 
     // vbox to hold the action buttons
 #if GTK_CHECK_VERSION(3,2,0)
@@ -2406,7 +1576,7 @@ find_replace_dialog_create(char_u *arg, int do_replace)
     actionarea = gtk_vbutton_box_new();
 #endif
     gtk_container_set_border_width(GTK_CONTAINER(actionarea), 2);
-    gtk_box_pack_end(GTK_BOX(hbox), actionarea, FALSE, FALSE, 0);
+    gtk_box_append(GTK_BOX(hbox), actionarea);
 
     // 'Find Next' button
 #if GTK_CHECK_VERSION(3,10,0)
@@ -2421,8 +1591,7 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 		     (do_replace) ? GINT_TO_POINTER(FRD_R_FINDNEXT)
 				  : GINT_TO_POINTER(FRD_FINDNEXT));
 
-    gtk_widget_set_can_default(frdp->find, TRUE);
-    gtk_box_pack_start(GTK_BOX(actionarea), frdp->find, FALSE, FALSE, 0);
+    add_button_to_dialog(actionarea, frdp->find, FALSE);
     gtk_widget_grab_default(frdp->find);
 
     if (do_replace)
@@ -2433,9 +1602,8 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 #else
 	frdp->replace = create_image_button(GTK_STOCK_CONVERT, _("Replace"));
 #endif
-	gtk_widget_set_sensitive(frdp->replace, sensitive);
+	add_button_to_dialog(actionarea, frdp->replace, sensitive);
 	gtk_widget_set_can_default(frdp->find, TRUE);
-	gtk_box_pack_start(GTK_BOX(actionarea), frdp->replace, FALSE, FALSE, 0);
 	g_signal_connect(G_OBJECT(frdp->replace), "clicked",
 			 G_CALLBACK(find_replace_cb),
 			 GINT_TO_POINTER(FRD_REPLACE));
@@ -2446,9 +1614,12 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 #else
 	frdp->all = create_image_button(GTK_STOCK_CONVERT, _("Replace All"));
 #endif
-	gtk_widget_set_sensitive(frdp->all, sensitive);
+	add_button_to_dialog(actionarea, frdp->all, sensitive);
+#ifndef USE_GTK4
+	// This is supposed to be replaced by gtk_window_set_default_widget
+	// once we stop using gtk_dialog_new (which was deprecated in 4.10)
 	gtk_widget_set_can_default(frdp->all, TRUE);
-	gtk_box_pack_start(GTK_BOX(actionarea), frdp->all, FALSE, FALSE, 0);
+#endif
 	g_signal_connect(G_OBJECT(frdp->all), "clicked",
 			 G_CALLBACK(find_replace_cb),
 			 GINT_TO_POINTER(FRD_REPLACEALL));
@@ -2461,7 +1632,7 @@ find_replace_dialog_create(char_u *arg, int do_replace)
     tmp = gtk_button_new_from_stock(GTK_STOCK_CLOSE);
 #endif
     gtk_widget_set_can_default(tmp, TRUE);
-    gtk_box_pack_end(GTK_BOX(actionarea), tmp, FALSE, FALSE, 0);
+    gtk_box_append(GTK_BOX(actionarea), tmp);
     g_signal_connect_swapped(G_OBJECT(tmp),
 			     "clicked", G_CALLBACK(gtk_widget_hide),
 			     G_OBJECT(frdp->dialog));
@@ -2469,20 +1640,13 @@ find_replace_dialog_create(char_u *arg, int do_replace)
 			     "delete-event", G_CALLBACK(gtk_widget_hide_on_delete),
 			     G_OBJECT(frdp->dialog));
 
-#if GTK_CHECK_VERSION(3,2,0)
-    tmp = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
-#else
-    tmp = gtk_vseparator_new();
-#endif
-    gtk_box_pack_end(GTK_BOX(hbox), tmp, FALSE, FALSE, 10);
-
     // Suppress automatic show of the unused action area
 #if GTK_CHECK_VERSION(3,0,0)
 # if !GTK_CHECK_VERSION(3,12,0)
-    gtk_widget_hide(gtk_dialog_get_action_area(GTK_DIALOG(frdp->dialog)));
+    gtk_widget_set_visible(gtk_dialog_get_action_area(GTK_DIALOG(frdp->dialog)), FALSE);
 # endif
 #else
-    gtk_widget_hide(GTK_DIALOG(frdp->dialog)->action_area);
+    gtk_widget_set_visible(GTK_DIALOG(frdp->dialog)->action_area, FALSE);
 #endif
     gtk_widget_show_all(hbox);
     gtk_widget_show(frdp->dialog);
@@ -2490,20 +1654,6 @@ find_replace_dialog_create(char_u *arg, int do_replace)
     vim_free(entry_text);
     vim_free(conv_buffer);
 #undef CONV
-}
-
-    void
-gui_mch_find_dialog(exarg_T *eap)
-{
-    if (gui.in_use)
-	find_replace_dialog_create(eap->arg, FALSE);
-}
-
-    void
-gui_mch_replace_dialog(exarg_T *eap)
-{
-    if (gui.in_use)
-	find_replace_dialog_create(eap->arg, TRUE);
 }
 
 /*
@@ -2533,7 +1683,7 @@ find_replace_cb(GtkWidget *widget UNUSED, gpointer data)
     }
 
     find_text = (char_u *)gtk_entry_get_text(GTK_ENTRY(sfr->what));
-    direction_down = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(sfr->down));
+    direction_down = find_replace_dialog_direction_is_down(sfr);
 
     if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(sfr->wword)))
 	flags |= FRD_WHOLE_WORD;
@@ -2588,26 +1738,3 @@ entry_changed_cb(GtkWidget * entry, GtkWidget * dialog)
 	gtk_widget_set_sensitive(repl_widgets.all, nonempty);
     }
 }
-
-/*
- * ":helpfind"
- */
-    void
-ex_helpfind(exarg_T *eap UNUSED)
-{
-    // This will fail when menus are not loaded.  Well, it's only for
-    // backwards compatibility anyway.
-    do_cmdline_cmd((char_u *)"emenu ToolBar.FindHelp");
-}
-
-#if defined(FEAT_BROWSE)
-    static void
-recent_func_log_func(const gchar *log_domain UNUSED,
-		     GLogLevelFlags log_level UNUSED,
-		     const gchar *message UNUSED,
-		     gpointer user_data UNUSED)
-{
-    // We just want to suppress the warnings.
-    // http://bugzilla.gnome.org/show_bug.cgi?id=664587
-}
-#endif

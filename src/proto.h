@@ -303,7 +303,12 @@ extern char_u *vimpty_getenv(const char_u *string);	// in misc2.c
 #  endif
 #  ifdef FEAT_GUI_GTK
 #   include "gui_gtk.pro"
-#   include "gui_gtk_x11.pro"
+#   include "gui_gtk_common.pro"
+#   ifdef USE_GTK3
+#     include "gui_gtk_x11.pro"
+#   elif USE_GTK4
+#     include "gui_gtk4.pro"
+#   endif
 #  endif
 #  ifdef FEAT_GUI_MOTIF
 #   include "gui_motif.pro"

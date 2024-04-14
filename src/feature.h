@@ -508,7 +508,7 @@
 /*
  * GUI dark theme variant
  */
-#if defined(FEAT_GUI_GTK) && defined(USE_GTK3)
+#if defined(FEAT_GUI_GTK) && ( defined(USE_GTK3) || defined(USE_GTK4) )
 # define FEAT_GUI_DARKTHEME
 #endif
 
@@ -808,7 +808,7 @@
  * +X11			Unix only.  Include code for xterm title saving and X
  *			clipboard.  Only works if HAVE_X11 is also defined.
  */
-#if defined(FEAT_NORMAL) || defined(FEAT_GUI_MOTIF)
+#if (defined(FEAT_NORMAL) || defined(FEAT_GUI_MOTIF)) && !defined(USE_GTK4)
 # define WANT_X11
 #endif
 
@@ -914,7 +914,9 @@
 #if defined(FEAT_NORMAL) \
 	&& (defined(UNIX) || defined(VMS)) \
 	&& defined(WANT_X11) && defined(HAVE_X11)
-# define FEAT_XCLIPBOARD
+# if !defined(USE_GTK4)
+#  define FEAT_XCLIPBOARD
+# endif
 # ifndef FEAT_CLIPBOARD
 #  define FEAT_CLIPBOARD
 # endif
@@ -1218,3 +1220,7 @@
 #if defined(FEAT_NORMAL) && defined(HAVE_XATTR) && !defined(MACOS_X)
 # define FEAT_XATTR
 #endif
+
+#undef FEAT_CLIENTSERVER
+#undef FEAT_DND
+

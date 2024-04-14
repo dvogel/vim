@@ -1574,6 +1574,9 @@ mch_init(void)
 #ifdef FEAT_CYGWIN_WIN32_CLIPBOARD
     win_clip_init();
 #endif
+#ifdef USE_GTK4
+    clip_init(TRUE);
+#endif
 }
 
     static void
@@ -2043,7 +2046,7 @@ get_x11_windis(void)
 	did_set_error_handler = TRUE;
     }
 
-#if defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK)
+#if (defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK)) && !defined(USE_GTK4)
     if (gui.in_use)
     {
 	/*

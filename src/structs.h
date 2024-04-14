@@ -4494,6 +4494,14 @@ struct VimMenu
 #ifdef FEAT_GUI_GTK
     GtkWidget	*id;		    // Manage this to enable item
     GtkWidget	*submenu_id;	    // If this is submenu, add children here
+# if GTK_CHECK_VERSION(4,0,0)
+    GSimpleAction  *item_action;
+    GtkVimMenu     *gobj_model_self;   // NULL when children is NULL
+    GVariant       *gtk_attr_label;
+    GVariant       *gtk_attr_action;
+    GVariant       *gtk_attr_target;
+    GVariant       *gtk_attr_custom;
+# endif
 # if defined(GTK_CHECK_VERSION) && !GTK_CHECK_VERSION(3,4,0)
     GtkWidget	*tearoff_handle;
 # endif
@@ -4877,7 +4885,7 @@ typedef enum {
 #define DELETION_REGISTER	36
 #ifdef FEAT_CLIPBOARD
 # define STAR_REGISTER		37
-#  if defined(FEAT_X11) || defined(FEAT_WAYLAND)
+#  if defined(FEAT_X11) || defined(FEAT_WAYLAND) || defined(USE_GTK4)
 #   define PLUS_REGISTER	38
 #  else
 #   define PLUS_REGISTER	STAR_REGISTER	    // there is only one

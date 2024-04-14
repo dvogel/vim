@@ -193,7 +193,7 @@ gui_attempt_start(void)
     termcapinit((char_u *)"builtin_gui");
     gui.starting = recursive - 1;
 
-#if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_X11)
+#if (defined(FEAT_GUI_GTK) && !defined(USE_GTK4)) || defined(FEAT_GUI_X11)
     if (gui.in_use)
     {
 # ifdef FEAT_EVAL
@@ -1487,12 +1487,14 @@ gui_position_components(int total_width UNUSED)
     gui_position_menu();
 #endif
     if (gui.which_scrollbars[SBAR_BOTTOM])
+    {
 	gui_mch_set_scrollbar_pos(&gui.bottom_sbar,
 				  text_area_x,
 				  text_area_y + text_area_height
 					+ gui_mch_get_scrollbar_ypadding(),
 				  text_area_width,
 				  gui.scrollbar_height);
+    }
     gui.left_sbar_x = 0;
     gui.right_sbar_x = text_area_x + text_area_width
 					+ gui_mch_get_scrollbar_xpadding();
@@ -4854,9 +4856,13 @@ gui_mouse_focus(int x, int y)
 	st[3] = (char_u)MOUSE_RELEASE;
 	add_to_input_buf(st, 8);
 #ifdef FEAT_GUI_GTK
+# ifndef USE_GTK4
+	// TODO: Is this necessary in GTK4 since GTK4 claims to not do recursive main loops?
+	// https://docs.gtk.org/gtk4/migrating-3to4.html#stop-using-blocking-dialog-functions
 	// Need to wake up the main loop
 	if (gtk_main_level() > 0)
 	    gtk_main_quit();
+# endif // USE_GTK4
 #endif
     }
 }

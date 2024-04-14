@@ -490,8 +490,19 @@ SRC_UNIX =	\
 		src/create_nvcmdidxs.c \
 		src/create_nvcmdidxs.vim \
 		src/gui_gtk.c \
-		src/gui_gtk_f.c \
-		src/gui_gtk_f.h \
+		src/gui_gtk_common.c \
+		src/gui_gtk_common.h \
+		src/gui_gtk_compat.c \
+		src/gui_gtk_compat.h \
+		src/gui_gtk3_form.c \
+		src/gui_gtk3_form.h \
+		src/gui_gtk4.c \
+		src/gui_gtk4_form.c \
+		src/gui_gtk4_form.h \
+		src/gui_gtk4_menu.c \
+		src/gui_gtk4_menu.h \
+		src/gui_gtk4_text_area.c \
+		src/gui_gtk4_text_area.h \
 		src/gui_gtk_x11.c \
 		src/gui_gtk_res.xml \
 		src/gui_motif.c \
@@ -520,8 +531,11 @@ SRC_UNIX =	\
 		src/osdef2.h.in \
 		src/pathdef.sh \
 		src/proto/gui_gtk.pro \
+		src/proto/gui_gtk_common.pro \
+		src/proto/gui_gtk_compat.pro \
 		src/proto/gui_gtk_x11.pro \
 		src/proto/gui_gtk_gresources.pro \
+		src/proto/gui_gtk4.pro \
 		src/proto/gui_motif.pro \
 		src/proto/gui_xmdlg.pro \
 		src/proto/gui_x11.pro \
@@ -759,6 +773,7 @@ RT_ALL =	\
 		runtime/doc/xxd.1 \
 		runtime/ftoff.vim \
 		runtime/gvimrc_example.vim \
+		runtime/gvim-gtk.css \
 		runtime/import/dist/vimhelp.vim \
 		runtime/import/dist/vimhighlight.vim \
 		runtime/macros/README.txt \
@@ -1181,5 +1196,9 @@ IGNORE = \
 		ci/hlgroups.ignore \
 		src/libvterm/CODE-MAP \
 		runtime/syntax/testdir/input/html_html \
+		gtk4_vimrc \
+		gtk-diff.sh \
+		reconfigure \
+		run_gtk_test_mode.sh \
 
 # vim: set ft=make:

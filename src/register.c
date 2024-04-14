@@ -22,6 +22,7 @@
  *     37 = Selection register '*'. Only if FEAT_CLIPBOARD defined
  *     38 = Clipboard register '+'. Only if FEAT_CLIPBOARD and FEAT_X11
  *                                  or FEAT_WAYLAND_CLIPBOARD defined
+ *                                  or USE_GTK4 defined
  */
 static yankreg_T	y_regs[NUM_REGISTERS];
 
@@ -1171,7 +1172,7 @@ op_yank(oparg_T *oap, int deleting, int mess)
     linenr_T		yankendlnum = oap->end.lnum;
     char_u		*pnew;
     struct block_def	bd;
-#if defined(FEAT_CLIPBOARD) && (defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD))
+#if defined(FEAT_CLIPBOARD) && (defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD) || defined(USE_GTK4))
     int			did_star = FALSE;
 #endif
 
@@ -1397,12 +1398,12 @@ op_yank(oparg_T *oap, int deleting, int mess)
 
 	clip_own_selection(&clip_star);
 	clip_gen_set_selection(&clip_star);
-# if defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD)
+# if defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD) || defined(USE_GTK4)
 	did_star = TRUE;
 # endif
     }
 
-# if defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD)
+# if defined(FEAT_X11) || defined(FEAT_WAYLAND_CLIPBOARD) || defined(USE_GTK4)
     // If we were yanking to the '+' register, send result to selection.
     // Also copy to the '*' register, in case auto-select is off.  But not when
     // 'clipboard' has "unnamedplus" and not "unnamed"; and not when

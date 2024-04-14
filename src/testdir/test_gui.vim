@@ -109,7 +109,7 @@ func Test_getfontname_without_arg()
 endfunc
 
 func Test_getwinpos()
-  CheckX11
+  CheckX11BasedGui
 
   call assert_match('Window position: X \d\+, Y \d\+', execute('winpos'))
   call assert_true(getwinposx() >= 0)

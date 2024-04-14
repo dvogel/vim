@@ -1849,8 +1849,10 @@ nb_do_cmd(
 	    if (State == MODE_HITRETURN || State == MODE_ASKMORE)
 	    {
 #ifdef FEAT_GUI_GTK
+# ifndef USE_GTK4
 		if (gui.in_use && gtk_main_level() > 0)
 		    gtk_main_quit();
+# endif
 #endif
 	    }
 // =====================================================================
@@ -2232,8 +2234,10 @@ nb_do_cmd(
 	if (State == MODE_HITRETURN || State == MODE_ASKMORE)
 	{
 #ifdef FEAT_GUI_GTK
+# ifndef USE_GTK4
 	    if (gui.in_use && gtk_main_level() > 0)
 		gtk_main_quit();
+# endif
 #endif
 	}
     }
