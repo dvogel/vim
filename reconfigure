@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+export CFLAGS=-g3
+
+bash ./configure \
+    --with-features=huge \
+    --enable-python3interp \
+    --enable-gui=gtk${1:-4} \
+    --enable-cscope \
+    --enable-fontset \
+    --enable-rubyinterp \
+    --enable-luainterp \
+    --enable-multibyte \
+    --disable-netbeans \
+    --prefix=$HOME/opt/vim STRIP=

@@ -3014,7 +3014,6 @@ win_line(
 		    init_colnr -= vcol_first_char;
 # endif
 		    init_chartabsize_arg(&cts, wp, lnum, init_colnr, line, p);
-# endif
 
 # ifdef FEAT_PROP_POPUP
 		    // do not want virtual text counted here

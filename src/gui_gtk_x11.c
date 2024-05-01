@@ -3099,18 +3099,23 @@ drawarea_style_set_cb(GtkWidget	*widget UNUSED,
 
 #if GTK_CHECK_VERSION(4,0,0)
     static gboolean
-drawarea_reconfigure_cb(GObject *unused1,
-	                GParamSpec *unused2,
-			gpointer unused3)
+drawarea_reconstruct_surface(GObject *aliased_drawarea,
+	                     GParamSpec *unused1,
+			     gpointer unused2)
 {
+    // In GTK3 configure-event would signal when some of the properties we care
+    // about remained the same. In GTK4 we rely on property signals which won't
+    // fire if the value has not changed because GTK takes pains to avoid that.
+
     if (gui.surface != NULL)
 	cairo_surface_destroy(gui.surface);
-    GdkSurface *s = gui_gtk_widget_get_containing_surface(gui.drawarea),
+
+    GdkSurface *s = gui_gtk_widget_get_containing_surface(gui.drawarea);
     gui.surface = gdk_surface_create_similar_surface(s,
 						     cairo_surface_get_content(s),
-						     gtk_widget_get_allocated_width(widget),
-						     gtk_widget_get_allocated_height(widget));
-    gtk_widget_queue_draw(widget);
+						     gtk_widget_get_allocated_width(gui.drawarea),
+						     gtk_widget_get_allocated_height(gui.drawarea));
+    gtk_widget_queue_draw(gui.drawarea);
     return TRUE;
 }
 #else
@@ -3177,9 +3182,22 @@ drawarea_configure_event_cb(GtkWidget	      *widget,
 # endif
 #endif
 
+#if GTK_CHECK_VERSION(4,0,0)
+/*
+ * Callback routine for the "close-request" signal on the toplevel window.
+ * Tries to exit vim gracefully, or refuses to exit with changed buffers.
+ */
+    static gint
+close_request_cb(GtkWidget *widget UNUSED,
+		 gpointer data UNUSED)
+{
+    gui_shell_closed();
+    return TRUE;
+}
+#else
 /*
  * Callback routine for the "delete_event" signal on the toplevel window.
- * Tries to vim gracefully, or refuses to exit with changed buffers.
+ * Tries to exit vim gracefully, or refuses to exit with changed buffers.
  */
     static gint
 delete_event_cb(GtkWidget *widget UNUSED,
@@ -3189,6 +3207,7 @@ delete_event_cb(GtkWidget *widget UNUSED,
     gui_shell_closed();
     return TRUE;
 }
+#endif
 
 #if defined(FEAT_MENU) || defined(FEAT_TOOLBAR) || defined(FEAT_GUI_TABLINE)
     static int
@@ -3488,12 +3507,95 @@ set_toolbar_style(GtkToolbar *toolbar)
 
 #if defined(FEAT_GUI_TABLINE) || defined(PROTO)
 static int ignore_tabline_evt = FALSE;
+# if GTK_CHECK_VERSION(3,0,0)
+static GtkPopoverMenu *tabline_menu;
+# else
 static GtkWidget *tabline_menu;
+# endif
 # if !GTK_CHECK_VERSION(3,0,0)
 static GtkTooltips *tabline_tooltip;
 # endif
 static int clicked_page;	    // page clicked in tab line
 
+
+
+/*
+ * Create a menu for the tab line.
+ */
+
+#if GTK_CHECK_VERSION(4,0,0)
+    static int
+tab_widget_at_cursor_position(
+	gdouble x, // cursor coordinates should be relative to the GtkNotebook.
+	gdouble y,
+	GtkNotebook *notebook
+	)
+{
+    graphene_point_t cursor_point;
+    graphene_point_init(&cursor_point, (float)x, (float)y);
+
+    graphene_rect_t  tab_widget_area;
+    GtkWidget        tab_widget;
+    GtkWidget        *page_widget;
+    GtkNotebookPage  *page;
+    for (int page_idx = 0; page_idx < gtk_notebook_get_n_pages(notebook); page_idx++)
+    {
+	page_widget = gtk_notebook_get_nth_page(notebook, page_idx);
+	if (page_widget == NULL)
+	    continue;
+
+	page = gtk_notebook_get_page(notebook, page_widget);
+	if (page == NULL)
+	    continue;
+
+	g_object_get(page, "tab", tab_widget);
+	if (!gtk_widget_compute_bounds(&tab_widget, notebook, &tab_widget_area))
+	    continue;
+
+	if (graphene_rect_contains_point(&tab_widget_area, &cursor_point)) {
+	    return page_idx + 1; // GTK tabs are 0-indexed while Vim tabs are 1-indexed
+	}
+    }
+
+    return 0;
+}
+
+    static void
+handle_tabline_menu_click(GtkGestureClick *click,
+		          gint n_press,
+			  gdouble x,
+			  gdouble y,
+			  gpointer user_data)
+{
+
+    // When ignoring events return TRUE so that the selected page doesn't
+    // change.
+    if (hold_gui_events || cmdwin_type != 0)
+	return TRUE;
+
+    guint button = gtk_gesture_single_get_current_button(click);
+    int clicked_page_nr = tab_widget_at_cursor_position(x, y, GTK_NOTEBOOK(user_data));
+}
+
+    static void
+create_tabline_menu(GtkNotebook *notebook)
+{
+    GMenu          *menu_tree;
+    GtkPopoverMenu *menu_popover;
+
+    menu_tree = g_menu_new();
+    g_menu_append(menu_tree, (const char_u *)_("Close tab"), "close-tab");
+    g_menu_append(menu_tree, (const char_u *)_("New tab"), "new-tab");
+    g_menu_append(menu_tree, (const char_u *)_("Open Tab..."), "open-tab");
+    tabline_menu = GTK_POPOVER_MENU(gtk_popover_menu_new_from_model(menu_tree));
+
+    GtkGestureClick *tabline_click = gtk_gesture_click_new();
+    gtk_widget_add_controller(GTK_WIDGET(gui.tabline), tabline_click);
+    g_signal_connect(G_OBJECT(tabline_click), "pressed",
+	    G_CALLBACK(handle_tabline_menu_click), G_OBJECT(notebook));
+    tabline_menu = menu_popover;
+}
+#else
 /*
  * Handle selecting an item in the tab line popup menu.
  */
@@ -3521,11 +3623,8 @@ add_tabline_menu_item(GtkWidget *menu, char_u *text, int resp)
 	    GINT_TO_POINTER(resp));
 }
 
-/*
- * Create a menu for the tab line.
- */
-    static GtkWidget *
-create_tabline_menu(void)
+    static void
+create_tabline_menu(GtkNotebook *notebook)
 {
     GtkWidget *menu;
 
@@ -3534,7 +3633,10 @@ create_tabline_menu(void)
     add_tabline_menu_item(menu, (char_u *)_("New tab"), TABLINE_MENU_NEW);
     add_tabline_menu_item(menu, (char_u *)_("Open Tab..."), TABLINE_MENU_OPEN);
 
-    return menu;
+    g_signal_connect_swapped(G_OBJECT(notebook), "button-press-event",
+	    G_CALLBACK(on_tabline_menu), G_OBJECT(tabline_menu));
+
+    tabline_menu = menu;
 }
 
     static gboolean
@@ -3592,6 +3694,7 @@ on_tabline_menu(GtkWidget *widget, GdkEvent *event)
     // We didn't handle the event.
     return FALSE;
 }
+#endif
 
 /*
  * Handle selecting one of the tabs.
@@ -3657,6 +3760,32 @@ gui_mch_showing_tabline(void)
 {
     return gui.tabline != NULL
 		     && gtk_notebook_get_show_tabs(GTK_NOTEBOOK(gui.tabline));
+}
+
+    static GtkWidget *
+gui_gtk_build_tab_label(const char *label_text, GtkWidget *page)
+{
+    // In GTK4 EventBox is not necessary because all widgets receive all
+    // events.
+    GtkWidget *label;
+    GtkWidget *event_box;
+
+    label = gtk_label_new(label_text);
+    gtk_widget_set_visible(label, TRUE);
+#if !GTK_CHECK_VERSION(3,14,0)
+    gtk_misc_set_padding(GTK_MISC(label), 2, 2);
+#endif
+#ifdef USE_GTK4
+    g_object_set_data(G_OBJECT(label), "tab_num", GINT_TO_POINTER(1L));
+    gtk_notebook_set_tab_label(GTK_NOTEBOOK(gui.tabline), page, label);
+#else
+    event_box = gtk_event_box_new();
+    gtk_widget_set_visible(event_box, TRUE);
+    g_object_set_data(G_OBJECT(event_box), "tab_num", GINT_TO_POINTER(1L));
+    gtk_container_add(GTK_CONTAINER(event_box), label);
+    gtk_notebook_set_tab_label(GTK_NOTEBOOK(gui.tabline), page, event_box);
+#endif
+    return label;
 }
 
 /*
@@ -3821,32 +3950,6 @@ gui_gtk_set_dnd_targets(void)
 		      GDK_ACTION_COPY | GDK_ACTION_MOVE);
 }
 
-    GtkWidget *
-gui_gtk_build_tab_label(const char *label_text, GtkWidget *page)
-{
-    // In GTK4 EventBox is not necessary because all widgets receive all
-    // events.
-    GtkWidget *label;
-    GtkWidget *event_box;
-
-    label = gtk_label_new(label_text);
-    gtk_widget_set_visible(label, TRUE);
-#if !GTK_CHECK_VERSION(3,14,0)
-    gtk_misc_set_padding(GTK_MISC(label), 2, 2);
-#endif
-#ifdef USE_GTK4
-    g_object_set_data(G_OBJECT(label), "tab_num", GINT_TO_POINTER(1L));
-    gtk_notebook_set_tab_label(GTK_NOTEBOOK(gui.tabline), page, label);
-#else
-    event_box = gtk_event_box_new();
-    gtk_widget_set_visible(event_box, TRUE);
-    g_object_set_data(G_OBJECT(event_box), "tab_num", GINT_TO_POINTER(1L));
-    gtk_container_add(GTK_CONTAINER(event_box), label);
-    gtk_notebook_set_tab_label(GTK_NOTEBOOK(gui.tabline), page, event_box);
-#endif
-    return label;
-}
-
 /*
  * Initialize the GUI.	Create all the windows, set up all the callbacks etc.
  * Returns OK for success, FAIL when the GUI can't be started.
@@ -3976,13 +4079,16 @@ gui_mch_init(void)
     gui.text_context = gtk_widget_create_pango_context(gui.mainwin);
     pango_context_set_base_dir(gui.text_context, PANGO_DIRECTION_LTR);
 
-#ifndef USE_GTK4
+#if GTK_CHECK_VERSION(4,0,0)
+    g_signal_connect(G_OBJECT(gui.mainwin), "close-request",
+		     G_CALLBACK(&close_request_cb), NULL);
+#else
     gtk_container_set_border_width(GTK_CONTAINER(gui.mainwin), 0);
     gtk_widget_add_events(gui.mainwin, GDK_VISIBILITY_NOTIFY_MASK);
-#endif
-
     g_signal_connect(G_OBJECT(gui.mainwin), "delete-event",
 		     G_CALLBACK(&delete_event_cb), NULL);
+#endif
+
 
     g_signal_connect(G_OBJECT(gui.mainwin), "realize",
 		     G_CALLBACK(&mainwin_realize), NULL);
@@ -4142,10 +4248,8 @@ gui_mch_init(void)
 	page = gtk_vbox_new(FALSE, 0);
 # endif
 	gtk_widget_show(page);
-	gtk_notebook_append_page(GTK_NOTEBOOK(gui.tabline), page);
-
 	tab_label = gui_gtk_build_tab_label("-Empty-", page);
-	gtk_notebook_set_tab_label(GTK_NOTEBOOK(gui.tabline), page, tab_label);
+	gtk_notebook_append_page(GTK_NOTEBOOK(gui.tabline), page, tab_label);
 # if GTK_CHECK_VERSION(2,10,0)
 	gtk_notebook_set_tab_reorderable(GTK_NOTEBOOK(gui.tabline), page, TRUE);
 # endif
@@ -4158,10 +4262,7 @@ gui_mch_init(void)
 		     G_CALLBACK(on_tab_reordered), NULL);
 # endif
 
-    // Create a popup menu for the tab line and connect it.
-    tabline_menu = create_tabline_menu();
-    g_signal_connect_swapped(G_OBJECT(gui.tabline), "button-press-event",
-	    G_CALLBACK(on_tabline_menu), G_OBJECT(tabline_menu));
+    create_tabline_menu(GTK_NOTEBOOK(gui.tabline));
 #endif // FEAT_GUI_TABLINE
 
 #ifdef USE_GTK4
@@ -4185,13 +4286,6 @@ gui_mch_init(void)
 
 #if GTK_CHECK_VERSION(4,0,0)
     GtkEventController *key_mailbox = gtk_event_controller_key_new();
-
-    // GTK4 has removed the configure-event so we need to mimic it. From the GTK4 docs:
-    // The ::configure-event signal will be emitted when the size, position or stacking of the widget‘s window has changed.
-    g_signal_connect(gui.drawarea, "notify::default-height", G_CALLBACK(drawarea_reconfigure_cb), NULL);
-    g_signal_connect(gui.drawarea, "notify::default-width", G_CALLBACK(drawarea_reconfigure_cb), NULL);
-    g_signal_connect(gui.drawarea, "notify::maximized", G_CALLBACK(drawarea_reconfigure_cb), NULL);
-    g_signal_connect(gui.drawarea, "notify::display", G_CALLBACK(drawarea_reconfigure_cb), NULL);
 #else
     // Determine which events we will filter.
     gint event_mask =
@@ -4434,7 +4528,12 @@ gui_mch_new_colors(void)
 		 (gui.back_pixel >> 8) & 0xff,
 		 gui.back_pixel & 0xff);
 
-	gtk_css_provider_load_from_data(provider, css, -1, NULL);
+	gtk_css_provider_load_from_data(provider, css, -1
+#if !GTK_CHECK_VERSION(4,0,0)
+	// TODO: GTK 4.12+ should use gtk_css_provider_load_from_bytes
+		                        , NULL
+#endif
+		                       );
 	gtk_style_context_add_provider(context,
 		GTK_STYLE_PROVIDER(provider), G_MAXUINT);
 
@@ -4464,6 +4563,7 @@ gui_mch_new_colors(void)
     }
 }
 
+#if !GTK_CHECK_VERSION(4,0,0)
 /*
  * This signal informs us about the need to rearrange our sub-widgets.
  */
@@ -4473,17 +4573,17 @@ form_configure_event(GtkWidget *widget UNUSED,
 		     gpointer data UNUSED)
 {
     int	    usable_height = event->height;
-#ifdef TRACK_RESIZE_HISTORY
+# ifdef TRACK_RESIZE_HISTORY
     // Resize requests are made for gui.mainwin;
     // get its dimensions for searching if this event
     // is a response to a vim request.
     int	    w, h;
     gtk_window_get_size(GTK_WINDOW(gui.mainwin), &w, &h);
 
-# ifdef ENABLE_RESIZE_HISTORY_LOG
+#  ifdef ENABLE_RESIZE_HISTORY_LOG
     ch_log(NULL, "gui_gtk: form_configure_event: (%d, %d) [%d, %d]",
 	   w, h, (int)Columns, (int)Rows);
-# endif
+#  endif
 
     // Look through history of recent vim resize requests.
     // If this event matches:
@@ -4502,9 +4602,9 @@ form_configure_event(GtkWidget *widget UNUSED,
 	// discard stale event
 	return TRUE;
     clear_resize_hists();
-#endif
+# endif
 
-#if GTK_CHECK_VERSION(3,22,2) && !GTK_CHECK_VERSION(3,22,4)
+# if GTK_CHECK_VERSION(3,22,2) && !GTK_CHECK_VERSION(3,22,4)
     // As of 3.22.2, GdkWindows have started distributing configure events to
     // their "native" children (https://git.gnome.org/browse/gtk+/commit/?h=gtk-3-22&id=12579fe71b3b8f79eb9c1b80e429443bcc437dd0).
     //
@@ -4526,7 +4626,7 @@ form_configure_event(GtkWidget *widget UNUSED,
     // The corresponding official release is 3.22.4.
     if (event->window != gtk_widget_get_window(gui.formwin))
 	return TRUE;
-#endif
+# endif
 
     // When in a GtkPlug, we can't guarantee valid heights (as a round
     // no. of char-heights), so we have to manually sanitise them.
@@ -4540,6 +4640,7 @@ form_configure_event(GtkWidget *widget UNUSED,
 
     return TRUE;
 }
+#endif
 
 /*
  * Function called when window already closed.
@@ -4578,7 +4679,11 @@ gui_gtk_get_screen_geom_of_win(
 	int *height)
 {
     GdkRectangle geometry;
+#if GTK_CHECK_VERSION(4,0,0)
+    GdkSurface *surf = gui_gtk_widget_get_containing_surface(wid);
+#else
     GdkWindow *win = gtk_widget_get_window(wid);
+#endif
 #if GTK_CHECK_VERSION(3,22,0)
     GdkDisplay *dpy;
     GdkMonitor *monitor;
@@ -4587,10 +4692,12 @@ gui_gtk_get_screen_geom_of_win(
 	dpy = gtk_widget_get_display(wid);
     else
 	dpy = gdk_display_get_default();
-    if (win != NULL)
+
 # if GTK_CHECK_VERSION(4,0,0)
-	monitor = gdk_display_get_monitor_at_surface(dpy, gui_gtk_widget_get_containing_surface(wid));
+    if (surf != NULL)
+	monitor = gdk_display_get_monitor_at_surface(dpy, surf);
 # else
+    if (win != NULL)
 	monitor = gdk_display_get_monitor_at_window(dpy, win);
 # endif
     else
@@ -4832,8 +4939,18 @@ gui_mch_open(void)
 #ifdef TRACK_RESIZE_HISTORY
     latest_resize_hist = ALLOC_CLEAR_ONE(resize_hist_T);
 #endif
+#if GTK_CHECK_VERSION(4,0,0)
+    // GTK4 has removed the configure-event so we need to mimic it. From the GTK4 docs:
+    // The ::configure-event signal will be emitted when the size, position or stacking of the widget‘s window has changed.
+    g_signal_connect(gui.drawarea, "notify::default-height", G_CALLBACK(drawarea_reconstruct_surface), NULL);
+    g_signal_connect(gui.drawarea, "notify::default-width", G_CALLBACK(drawarea_reconstruct_surface), NULL);
+    g_signal_connect(gui.drawarea, "notify::maximized", G_CALLBACK(drawarea_reconstruct_surface), NULL);
+    g_signal_connect(gui.drawarea, "notify::fullscreened", G_CALLBACK(drawarea_reconstruct_surface), NULL);
+    g_signal_connect(gui.drawarea, "notify::display", G_CALLBACK(drawarea_reconstruct_surface), NULL);
+#else
     g_signal_connect(G_OBJECT(gui.formwin), "configure-event",
 				       G_CALLBACK(form_configure_event), NULL);
+#endif
 #if GTK_CHECK_VERSION(3,10,0)
     g_signal_connect(G_OBJECT(gui.formwin), "notify::scale-factor",
 		     G_CALLBACK(scale_factor_event), NULL);
@@ -4994,7 +5111,7 @@ gui_mch_maximized(void)
     GdkSurface *surf = gui_gtk_widget_get_containing_surface(gui.mainwin);
     if (surf == NULL)
 	return FALSE;
-    return (gdk_toplevel_get_state(GDK_TOPLEVEL(s)) &
+    return (gdk_toplevel_get_state(GDK_TOPLEVEL(surf)) &
 	    GDK_TOPLEVEL_STATE_MAXIMIZED);
 #else
     GdkWindow *w = gtk_widget_get_window(gui.mainwin);
