@@ -629,9 +629,9 @@ a slash.  Thus "-R" means recovery and "-/R" readonly.
 		|gui-w32-windowid| for details.
 
 --echo-wid						*--echo-wid*
-		GTK+ GUI Vim only.  Make gvim echo the Window ID on stdout,
-		which can be used to run gvim in a kpart widget.  The format
-		of the output is: >
+		GTK+ GUI Vim only.  Make gvim echo the X11 Window ID on
+		stdout, which can be used to run gvim in a kpart widget. Not
+		supported on GTK+ v4.  The format of the output is: >
 			WID: 12345\n
 
 --role {role}						*--role*

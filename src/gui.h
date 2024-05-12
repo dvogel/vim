@@ -353,6 +353,13 @@ typedef struct Gui
     GtkWidget	*mainwin;	    // top level GTK window
     GtkWidget	*formwin;	    // manages all the windows below
     GtkWidget	*drawarea;	    // the "text" area
+# ifdef USE_GTK4
+    GdkModifierType          modifiers_state;
+    GtkEventControllerKey    *key_events;
+    GtkEventControllerMotion *motion_events;
+    GtkEventControllerFocus  *focus_events;
+    GtkEventControllerScroll *scroll_events;
+# endif
 # ifdef FEAT_MENU
     GtkWidget	*menubar;	    // menubar
 # endif

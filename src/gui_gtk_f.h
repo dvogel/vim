@@ -9,8 +9,6 @@
 #ifndef __GTK_FORM_H__
 #define __GTK_FORM_H__
 
-#ifndef USE_GTK4
-
 #ifdef FEAT_GUI_GTK
 #  if defined(USE_GTK3) || defined(USE_GTK4)
 #    include <gtk/gtk.h>
@@ -99,5 +97,4 @@ void gui_gtk_form_thaw(GtkForm *form);
 }
 #endif
 
-#endif  // USE_GTK4
 #endif	// __GTK_FORM_H__
