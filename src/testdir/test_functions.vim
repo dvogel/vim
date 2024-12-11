@@ -749,6 +749,7 @@ endfunc
 
 " Test for the mode() function
 func Test_mode()
+  CheckScreendump
   new
   call append(0, ["Blue Ball Black", "Brown Band Bowl", ""])
 

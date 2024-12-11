@@ -1166,6 +1166,7 @@ func Test_breakindent_change_display_uhex()
 endfunc
 
 func Test_breakindent_list_split()
+  CheckScreendump
   10new
   61vsplit
   setlocal tabstop=8 breakindent list listchars=tab:<->,eol:$

@@ -2102,6 +2102,7 @@ endfunc
 func Test_job_start_in_timer()
   CheckFeature timers
   CheckFunction reltimefloat
+  CheckNotAsan
 
   func OutCb(chan, msg)
     let g:val += 1
