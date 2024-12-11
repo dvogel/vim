@@ -1146,6 +1146,9 @@ IGNORE = \
 		.github/FUNDING.yml \
 		.github/labeler.yml \
 		.github/workflows/label.yml \
+		breakindent-repro.sh \
+		breakindent-trace.bt \
+		show-dumps-with-diff.sh \
 		SECURITY.md \
 		ci/unlisted.make \
 		src/libvterm/CODE-MAP \

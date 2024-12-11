@@ -280,6 +280,12 @@ func RunTheTest(test)
     endtry
   endif
 
+  try
+    call err_teapot()
+  catch /E418/
+    " noop
+  endtry
+
   let skipped = v:false
 
   au VimLeavePre * call EarlyExit(g:testfunc)
@@ -305,6 +311,12 @@ func RunTheTest(test)
     endtry
   endif
   au! VimLeavePre
+
+  try
+    call err_teapot()
+  catch /E418/
+    " noop
+  endtry
 
   if a:test =~ '_terminal_'
     " Terminal tests sometimes hang, give extra information

@@ -12,6 +12,9 @@ source screendump.vim
 
 func SetUp()
   let s:input ="\tabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP"
+  " The dumps used as reference in these tests were created with 78 columns,
+  " with 75 used by the embedded terminal.
+  set columns=78
 endfunc
 
 func s:screen_lines(lnum, width) abort
@@ -962,18 +965,18 @@ func Test_cursor_position_with_showbreak()
   let buf = RunVimInTerminal('-S XscriptShowbreak', #{rows: 6})
 
   call term_sendkeys(buf, "AX")
-  call VerifyScreenDump(buf, 'Test_cursor_position_with_showbreak_1', {})
+  call VerifyScreenDump(buf, 'Test_cursor_position_with_showbreak_1', {'wait': 50})
   " No line wraps, so changing 'showbreak' should lead to the same screen.
   call term_sendkeys(buf, "\<C-\>\<C-O>:setlocal showbreak=+\<CR>")
-  call VerifyScreenDump(buf, 'Test_cursor_position_with_showbreak_1', {})
+  call VerifyScreenDump(buf, 'Test_cursor_position_with_showbreak_1', {'wait': 50})
   " No line wraps, so setting 'breakindent' should lead to the same screen.
   call term_sendkeys(buf, "\<C-\>\<C-O>:setlocal breakindent\<CR>")
-  call VerifyScreenDump(buf, 'Test_cursor_position_with_showbreak_1', {})
+  call VerifyScreenDump(buf, 'Test_cursor_position_with_showbreak_1', {'wait': 50})
   " The first line now wraps because of "eol" in 'listchars'.
   call term_sendkeys(buf, "\<C-\>\<C-O>:setlocal list\<CR>")
-  call VerifyScreenDump(buf, 'Test_cursor_position_with_showbreak_2', {})
+  call VerifyScreenDump(buf, 'Test_cursor_position_with_showbreak_2', {'wait': 50})
   call term_sendkeys(buf, "\<C-\>\<C-O>:setlocal nobreakindent\<CR>")
-  call VerifyScreenDump(buf, 'Test_cursor_position_with_showbreak_3', {})
+  call VerifyScreenDump(buf, 'Test_cursor_position_with_showbreak_3', {'wait': 50})
 
   call StopVimInTerminal(buf)
 endfunc
@@ -990,13 +993,13 @@ func Test_visual_starts_before_skipcol()
   let buf = RunVimInTerminal('-S XvisualStartsBeforeSkipcol', #{rows: 6})
 
   call term_sendkeys(buf, "v$")
-  call VerifyScreenDump(buf, 'Test_visual_starts_before_skipcol_1', {})
+  call VerifyScreenDump(buf, 'Test_visual_starts_before_skipcol_1', {'wait': 50})
   call term_sendkeys(buf, "\<Esc>:setlocal showbreak=+++\<CR>gv")
-  call VerifyScreenDump(buf, 'Test_visual_starts_before_skipcol_2', {})
+  call VerifyScreenDump(buf, 'Test_visual_starts_before_skipcol_2', {'wait': 50})
   call term_sendkeys(buf, "\<Esc>:setlocal breakindentopt+=sbr\<CR>gv")
-  call VerifyScreenDump(buf, 'Test_visual_starts_before_skipcol_3', {})
+  call VerifyScreenDump(buf, 'Test_visual_starts_before_skipcol_3', {'wait': 50})
   call term_sendkeys(buf, "\<Esc>:setlocal nobreakindent\<CR>gv")
-  call VerifyScreenDump(buf, 'Test_visual_starts_before_skipcol_4', {})
+  call VerifyScreenDump(buf, 'Test_visual_starts_before_skipcol_4', {'wait': 50})
 
   call StopVimInTerminal(buf)
 endfunc

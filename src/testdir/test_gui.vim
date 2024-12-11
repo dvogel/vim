@@ -8,6 +8,12 @@ source setup_gui.vim
 
 func Setup()
   call GUISetUpCommon()
+  " The dumps used as reference in these tests were created with 78 columns,
+  " with 75 used by the embedded terminal.
+  set columns=78
+  " Without resetting lines, some GTK resize events can carry over between
+  " tests, which invalidate assumptions in the scrollbar offset calculations.
+  set lines=25
 endfunc
 
 func TearDown()
@@ -774,9 +780,9 @@ func Test_scrollbars()
   let g:test_is_flaky = 1
 
   " buffer with 200 lines
-  new
   call setline(1, repeat(['one', 'two'], 100))
-  set guioptions+=rlb
+  set scrolloff=0
+  set guioptions=rlbk
 
   " scroll to move line 11 at top, moves the cursor there
   let args = #{which: 'left', value: 10, dragging: 0}
@@ -826,6 +832,7 @@ func Test_scrollbars()
   call assert_fails("call test_gui_event('scrollbar', #{which: 'a', value: 1, dragging: 0})", 'E475:')
 
   set guioptions&
+  set scrolloff&
   set wrap&
   bwipe!
 endfunc

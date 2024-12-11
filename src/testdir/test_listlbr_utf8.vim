@@ -11,6 +11,12 @@ CheckFeature signs
 source view_util.vim
 source screendump.vim
 
+func SetUp()
+  " The dumps used as reference in these tests were created with 78 columns,
+  " with 75 used by the embedded terminal.
+  set columns=78
+endfunc
+
 func s:screen_lines(lnum, width) abort
   return ScreenLines(a:lnum, a:width)
 endfunc

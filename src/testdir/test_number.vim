@@ -5,6 +5,12 @@ source view_util.vim
 
 source screendump.vim
 
+func SetUp()
+  " The dumps used as reference in these tests were created with 78 columns,
+  " with 75 used by the embedded terminal.
+  set columns=78
+endfunc
+
 func s:screen_lines(start, end) abort
   return ScreenLines([a:start, a:end], 8)
 endfunc
@@ -359,6 +365,7 @@ func Test_number_insert_delete_lines()
   call writefile(lines, 'Xnumber_insert_delete_lines', 'D')
 
   let buf = RunVimInTerminal('-S Xnumber_insert_delete_lines', #{rows: 8})
+  call TermWait(buf, 310)
   call VerifyScreenDump(buf, 'Test_number_insert_delete_lines_1', {})
   call term_sendkeys(buf, "dd")
   call VerifyScreenDump(buf, 'Test_number_insert_delete_lines_2', {})

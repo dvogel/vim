@@ -1,0 +1,43 @@
+BEGIN {
+	printf("Tracing vim\n");
+	@runs = 0;
+	@ = 0;
+}
+
+uprobe:../vim:gui_mch_init {
+	@runs++;
+	@ = 0;
+}
+
+uprobe:../vim:form_configure_event_params {
+	@++;
+	printf("form_configure_event(widget=%x, send_event=%x, x=%d, y=%d, w=%d, h=%d)\n", arg0, arg1, arg2, arg3, arg4, arg5);
+}
+
+uprobe:../vim:gui_resize_shell {
+	printf("gui_resize_shell(w=%d, h=%d)\n", arg0, arg1);
+}
+
+uprobe:../vim:shell_resized {
+	printf("shell_resized()\n");
+}
+
+uprobe:../vim:gui_mch_set_shellsize {
+	printf("gui_mch_set_shellsize(width=%d, height=%d)\n", arg0, arg1);
+}
+
+uprobe:../vim:gui_exit {
+	printf("----\n");
+	printf("gui_exit\n");
+	printf("---- END\n");
+}
+
+uprobe:../vim:f_err_teapot {
+	printf("form_configure_event calls: %d\n", @);
+	@ = 0;
+	printf("----\n");
+}
+
+END {
+	printf("form_configure_event calls: %d\n", @);
+}

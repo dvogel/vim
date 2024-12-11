@@ -92,6 +92,9 @@ func Test_curswant_with_cursorline()
 endfunc
 
 func Test_screenpos()
+  " Without ensuring the width is 78, the '20vsplit' command below results in
+  " less than 20 columns for the window.
+  set columns=78
   rightbelow new
   rightbelow 20vsplit
   call setline(1, ["\tsome text", "long wrapping line here", "next line"])

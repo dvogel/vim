@@ -5,6 +5,12 @@ source screendump.vim
 source check.vim
 source view_util.vim
 
+func SetUp()
+  " The dumps used as reference in these tests were created with 78 columns,
+  " with 75 used by the embedded terminal.
+  set columns=78
+endfunc
+
 func Test_diff_fold_sync()
   enew!
   let g:update_count = 0

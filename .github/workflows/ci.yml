@@ -103,17 +103,65 @@ jobs:
         run: |
           sudo bash ci/remove_snap.sh
 
+      - name: Enable debug packages
+        run: |
+          (
+            echo "deb http://ddebs.ubuntu.com noble main restricted universe multiverse"
+            echo "deb http://ddebs.ubuntu.com noble-updates main restricted universe multiverse"
+            echo "deb http://ddebs.ubuntu.com noble-proposed main restricted universe multiverse"
+          ) | sudo tee /etc/apt/sources.list.d/ddebs.list
+          sudo apt install ubuntu-dbgsym-keyring
+
       - name: Install packages
         run: |
           # This is added by default, and it is often broken, but we don't need anything from it
           sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
+          (
+            echo "Package: libgtk-3-0t64"
+            echo "Pin: version 3.24.41-4ubuntu1.2"
+            echo "Pin-Priority: 1000"
+            echo
+            echo "Package: libgtk-3-0t64"
+            echo "Pin: version 3.24.41-4ubuntu1.3"
+            echo "Pin-Priority: 100"
+            echo
+            echo "Package: libgtk-3-0t64-dbgsym"
+            echo "Pin: version 3.24.41-4ubuntu1.2"
+            echo "Pin-Priority: 1000"
+            echo
+            echo "Package: libgtk-3-0t64-dbgsym"
+            echo "Pin: version 3.24.41-4ubuntu1.3"
+            echo "Pin-Priority: 100"
+            echo
+            echo "Package: libgtk-3-bin-dbgsym"
+            echo "Pin: version 3.24.41-4ubuntu1.2"
+            echo "Pin-Priority: 1000"
+            echo
+            echo "Package: libgtk-3-bin-dbgsym"
+            echo "Pin: version 3.24.41-4ubuntu1.3"
+            echo "Pin-Priority: 100"
+            echo
+            echo "Package: libgtk-3-bin"
+            echo "Pin: version 3.24.41-4ubuntu1.2"
+            echo "Pin-Priority: 1000"
+            echo
+            echo "Package: libgtk-3-bin"
+            echo "Pin: version 3.24.41-4ubuntu1.3"
+            echo "Pin-Priority: 100"
+            echo
+          ) | sudo tee /etc/apt/preferences.d/pins
           PKGS=( \
             gettext \
-            libgtk2.0-dev:${{ matrix.architecture }} \
+            libgtk-3-dev:${{ matrix.architecture }} \
+            libgtk-3-bin:${{ matrix.architecture }} \
             desktop-file-utils \
+            libc6-dbgsym:${{ matrix.architecture }} \
             libtool-bin \
             libncurses-dev:${{ matrix.architecture }} \
             libxt-dev:${{ matrix.architecture }} \
+            libepoxy-dev:${{ matrix.architecture }} \
+            libwayland-client0:${{ matrix.architecture }} \
+            libwayland-cursor0:${{ matrix.architecture }} \
             locales-all \
             software-properties-common \
           )
@@ -136,7 +184,29 @@ jobs:
               libattr1-dev
             )
           fi
-          sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install -y "${PKGS[@]}"
+          if ${{ matrix.architecture == 'native' }}; then
+            PKGS+=( \
+              libc6-dbg:${{ matrix.architecture }} \
+              libepoxy0-dbgsym:${{ matrix.architecture }} \
+              libglib2.0-dev-dbgsym:${{ matrix.architecture }} \
+              libglib2.0-bin-dbgsym:${{ matrix.architecture }} \
+              libglib2.0-dev-bin-dbgsym:${{ matrix.architecture }} \
+              libglu1-mesa-dbgsym:${{ matrix.architecture }} \
+              libglw1t64-mesa-dbgsym:${{ matrix.architecture }} \
+              libgtk-3-bin-dbgsym:${{ matrix.architecture }} \
+              libgtk-3-0t64-dbgsym:${{ matrix.architecture }} \
+              libx11-6-dbgsym:${{ matrix.architecture }} \
+              libxcb1-dbgsym:${{ matrix.architecture }} \
+              libxdamage1-dbgsym:${{ matrix.architecture }} \
+              libxext6-dbgsym:${{ matrix.architecture }} \
+              libxt6t64-dbgsym:${{ matrix.architecture }} \
+              libxrandr2-dbgsym:${{ matrix.architecture }} \
+              libxrender1-dbgsym:${{ matrix.architecture }} \
+              libwayland-client0-dbgsym:${{ matrix.architecture }} \
+              libwayland-cursor0-dbgsym:${{ matrix.architecture }} \
+            )
+          fi
+          sudo apt-get update && sudo apt-get upgrade -y --allow-downgrades && sudo apt-get install -y --allow-downgrades "${PKGS[@]}"
 
       - name: Install gcc-${{ env.GCC_VER }}
         if:  matrix.compiler == 'gcc'
@@ -213,6 +283,8 @@ jobs:
             echo "TEST=-C runtime/doc vimtags VIMEXE=../../${SRCDIR}/vim"
           fi
           echo "CFLAGS=${CFLAGS}"
+          # Disables GTK integration with accessibility service
+          echo "NO_AT_BRIDGE=1"
           ) >> $GITHUB_ENV
 
       - name: Set up system
@@ -260,16 +332,12 @@ jobs:
           "${SRCDIR}"/vim -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-1.vim -c quit
           "${SRCDIR}"/vim -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-2.vim -c quit
 
-      - name: Test
-        if: matrix.architecture != 'arm64'
-        timeout-minutes: 25
+      - name: Override rendering
         run: |
-          make ${SHADOWOPT} ${TEST}
+          echo LIBGL_ALWAYS_SOFTWARE=true >> $GITHUB_ENV
+          echo LIBGL_ALWAYS_INDIRECT=false >> $GITHUB_ENV
 
-
-      # `sg audio` does not work on arm64 runner due to permission ('Incorrect password' error).
-      - name: Test on arm64
-        if: matrix.architecture == 'arm64'
+      - name: Test
         timeout-minutes: 25
         run: |
           make ${SHADOWOPT} ${TEST}

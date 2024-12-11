@@ -4356,6 +4356,10 @@ f_err_teapot(typval_T *argvars, typval_T *rettv UNUSED)
     }
 
     emsg(_(e_im_a_teapot));
+#ifdef FEAT_GUI
+    if (gui.in_use)
+	gui_mch_update();
+#endif
 }
 
 /*

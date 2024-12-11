@@ -1981,6 +1981,7 @@ endfunc
 " window, the window contents should be scrolled one line up. If the top line
 " is part of a fold, then the entire fold should be scrolled up.
 func Test_edit_lastline_scroll()
+  set foldcolumn=0
   new
   let h = winheight(0)
   let lines = ['one', 'two', 'three']

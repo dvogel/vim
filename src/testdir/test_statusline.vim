@@ -3,6 +3,13 @@
 " Not tested yet:
 "   %N
 
+" Example failures:
+"
+" command line..script /home/dvogel/devel/vim/src/testdir/runtest.vim[629]..function RunTheTest[63]..Test_statusline_mbyte_fillchar line 8: Pattern '^a\\+═\\+b═a\\+━\\+b$' does not match 'a\[═ occurs 38 times]b═a\[━ occurs 36 times]'
+"
+" command line..script /home/dvogel/devel/vim/src/testdir/runtest.vim[629]..function RunTheTest[63]..Test_statusline_mbyte_fillchar line 6: Pattern '^a\\+━\\+b━a\\+═\\+b$' does not match 'a\[━ occurs 38 times]b━a\[═ occurs 36 times]'
+
+
 source view_util.vim
 source check.vim
 source screendump.vim
@@ -16,6 +23,7 @@ func TearDown()
 endfunc
 
 func s:get_statusline()
+  redraw
   return ScreenLines(&lines - 1, &columns)[0]
 endfunc
 

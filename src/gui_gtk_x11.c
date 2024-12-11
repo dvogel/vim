@@ -400,7 +400,7 @@ static int using_gnome = 0;
 #endif
 
 // Comment out the following line to ignore code for resize history tracking.
-#define TRACK_RESIZE_HISTORY
+// #define TRACK_RESIZE_HISTORY
 #ifdef TRACK_RESIZE_HISTORY
 /*
  * Keep a short term resize history so that stale gtk responses can be
@@ -4273,6 +4273,15 @@ gui_mch_new_colors(void)
     }
 }
 
+    static void
+form_configure_event_params(GtkWidget *widget,
+			    gint8 send_event,
+			    gint x, gint y,
+			    gint w, gint h)
+{
+    return;
+}
+
 /*
  * This signal informs us about the need to rearrange our sub-widgets.
  */
@@ -4281,6 +4290,7 @@ form_configure_event(GtkWidget *widget UNUSED,
 		     GdkEventConfigure *event,
 		     gpointer data UNUSED)
 {
+    form_configure_event_params(widget, event->send_event, event->x, event->y, event->width, event->height);
     int	    usable_height = event->height;
 #ifdef TRACK_RESIZE_HISTORY
     // Resize requests are made for gui.mainwin;
