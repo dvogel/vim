@@ -242,6 +242,10 @@ func RunTheTest(test)
     let g:func_start = reltime()
   endif
   echoconsole prefix .. 'Executing ' .. a:test
+  if has('gui_running')
+    let g:before_lines = &lines
+    let g:before_columns = &columns
+  endif
 
   if has('timers')
     " No test should take longer than 45 seconds.  If it takes longer we
@@ -383,6 +387,14 @@ func RunTheTest(test)
     let message ..= ' in ' .. reltimestr(time) .. ' seconds'
     if reltimefloat(time) > 0.1
       let message ..= s:t_normal
+    endif
+  endif
+  if has('gui_running')
+    if &columns != g:before_columns
+      let message ..= "  columns changed: " .. string(g:before_columns) .. "->" .. string(&columns)
+    endif
+    if &lines != g:before_lines
+      let message ..= "  lines changed: " .. string(g:before_lines) .. "->" .. string(&lines)
     endif
   endif
   call add(s:messages, message)

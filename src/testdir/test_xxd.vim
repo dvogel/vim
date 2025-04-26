@@ -665,6 +665,7 @@ func Test_xxd_color2()
   let $PS1='$ '
   " This needs dash, plain bashs sh does not seem to work :(
   let buf = RunVimInTerminal('', #{rows: 20, cmd: 'sh'})
+  call TermWait(buf)
   call term_sendkeys(buf,  s:xxd_cmd .. " -R never  < XXDfile_colors\<cr>")
   call TermWait(buf)
   redraw

@@ -4349,6 +4349,7 @@ gui_update_scrollbars(
 					    val, size, max);
 	}
     }
+    gui_mch_update();
 
     // update the title, it may show the scroll position
     maketitle();

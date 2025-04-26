@@ -122,6 +122,7 @@ func RunVimInTerminal(arguments, options)
     if term_getsize(buf) != [rows, cols]
       call term_setsize(buf, rows, cols)
     endif
+    call assert_equal([rows, cols], term_getsize(buf))
   else
     let rows = term_getsize(buf)[0]
     let cols = term_getsize(buf)[1]
