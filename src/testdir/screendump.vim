@@ -63,11 +63,11 @@ func VerifyScreenDump(buf, filename, options, ...)
   let g:giveup_same_error = 0
 
   " wait for the pending updates to be handled.
-  call TermWait(a:buf, 0)
+  call TermWait(a:buf)
 
   " Redraw to execute the code that updates the screen.  Otherwise we get the
   " text and attributes only from the internal buffer.
-  redraw
+  redraw!
 
   if filereadable(reference)
     let refdump = ReadAndFilter(reference, filter)
