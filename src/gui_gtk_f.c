@@ -78,8 +78,6 @@ static void form_realize_child(GtkForm *form, GtkFormChild *child);
 static void form_position_child(GtkForm *form, GtkFormChild *child, gboolean force_allocate);
 static void form_position_children(GtkForm *form);
 
-static void form_send_configure(GtkForm *form);
-
 static void form_child_map(GtkWidget *widget, gpointer user_data);
 static void form_child_unmap(GtkWidget *widget, gpointer user_data);
 
@@ -516,8 +514,6 @@ form_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 			       allocation->width, allocation->height);
     }
     gtk_widget_set_allocation(widget, allocation);
-    if (need_reposition)
-	form_send_configure(form);
 }
 
 #if GTK_CHECK_VERSION(3,0,0)
@@ -841,26 +837,6 @@ gui_gtk_form_move_resize(GtkForm *form, GtkWidget *widget,
 #endif
 
     gui_gtk_form_move(form, widget, x, y);
-}
-
-    static void
-form_send_configure(GtkForm *form)
-{
-    GtkWidget *widget;
-    GdkEventConfigure event;
-    GtkAllocation allocation;
-
-    widget = GTK_WIDGET(form);
-
-    gtk_widget_get_allocation(widget, &allocation);
-    event.type = GDK_CONFIGURE;
-    event.window = gtk_widget_get_window(widget);
-    event.x = allocation.x;
-    event.y = allocation.y;
-    event.width = allocation.width;
-    event.height = allocation.height;
-
-    gtk_main_do_event((GdkEvent*)&event);
 }
 
     static void
