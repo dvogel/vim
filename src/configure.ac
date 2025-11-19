@@ -2959,7 +2959,7 @@ AC_DEFUN([GNOME_INIT],[
 dnl ---------------------------------------------------------------------------
 dnl Check for GTK3. If it succeeds, skip the check for GTK2.
 dnl ---------------------------------------------------------------------------
-if test -z "$SKIP_GTK3"; then
+if test "$GUITYPE" == "NONE" -a -z "$SKIP_GTK3"; then
   AC_MSG_CHECKING(--disable-gtktest argument)
   AC_ARG_ENABLE(gtktest, [  --disable-gtktest       Do not try to compile and run a test GTK program],
 	, enable_gtktest=yes)
@@ -2975,9 +2975,6 @@ if test -z "$SKIP_GTK3"; then
 		 GTK_LIBNAME="$GTK_LIBS"
 		 GUI_INC_LOC="$GTK_CPPFLAGS"])
     if test -n "$GTK_CPPFLAGS"; then
-      SKIP_GTK2=YES
-      SKIP_GNOME=YES
-      SKIP_MOTIF=YES
       GUITYPE=GTK
       AC_SUBST(GTK_LIBNAME)
       AC_DEFINE(USE_GTK3)
@@ -2988,7 +2985,7 @@ fi
 dnl ---------------------------------------------------------------------------
 dnl Check for GTK2.  If it fails, then continue on for Motif as before...
 dnl ---------------------------------------------------------------------------
-if test -z "$SKIP_GTK2"; then
+if test "$GUITYPE" == "NONE" -a -z "$SKIP_GTK2"; then
   AC_MSG_CHECKING(--disable-gtktest argument)
   AC_ARG_ENABLE(gtktest, [  --disable-gtktest       Do not try to compile and run a test GTK program],
 	, enable_gtktest=yes)
@@ -3006,7 +3003,6 @@ if test -z "$SKIP_GTK2"; then
 		 GTK_LIBNAME="$GTK_LIBS"
 		 GUI_INC_LOC="$GTK_CPPFLAGS"])
     if test -n "$GTK_CPPFLAGS"; then
-      SKIP_MOTIF=YES
       GUITYPE=GTK
       AC_SUBST(GTK_LIBNAME)
     fi
@@ -3097,145 +3093,147 @@ dnl Check for Motif include files location.
 dnl The LAST one found is used, this makes the highest version to be used,
 dnl e.g. when Motif1.2 and Motif2.0 are both present.
 
-if test -z "$SKIP_MOTIF"; then
-  gui_XXX="/usr/XXX/Motif* /usr/Motif*/XXX /usr/XXX /usr/shlib /usr/X11*/XXX /usr/XXX/X11* /usr/dt/XXX /local/Motif*/XXX /local/XXX/Motif* /usr/local/Motif*/XXX /usr/local/XXX/Motif* /usr/local/XXX /usr/local/X11*/XXX /usr/local/LessTif/Motif*/XXX $MOTIFHOME/XXX"
-  dnl Remove "-I" from before $GUI_INC_LOC if it's there
-  GUI_INC_LOC="`echo $GUI_INC_LOC|sed 's%-I%%g'`"
+if test "$GUITYPE" == "NONE"; then
+  if test -z "$SKIP_MOTIF"; then
+    gui_XXX="/usr/XXX/Motif* /usr/Motif*/XXX /usr/XXX /usr/shlib /usr/X11*/XXX /usr/XXX/X11* /usr/dt/XXX /local/Motif*/XXX /local/XXX/Motif* /usr/local/Motif*/XXX /usr/local/XXX/Motif* /usr/local/XXX /usr/local/X11*/XXX /usr/local/LessTif/Motif*/XXX $MOTIFHOME/XXX"
+    dnl Remove "-I" from before $GUI_INC_LOC if it's there
+    GUI_INC_LOC="`echo $GUI_INC_LOC|sed 's%-I%%g'`"
 
-  AC_MSG_CHECKING(for location of Motif GUI includes)
-  gui_includes="`echo $x_includes|sed 's%/[^/][^/]*$%%'` `echo "$gui_XXX" | sed s/XXX/include/g` $GUI_INC_LOC"
-  GUI_INC_LOC=
-  for try in $gui_includes; do
-    if test -f "$try/Xm/Xm.h"; then
-      GUI_INC_LOC=$try
-    fi
-  done
-  if test -n "$GUI_INC_LOC"; then
-    if test "$GUI_INC_LOC" = /usr/include; then
-      GUI_INC_LOC=
-      AC_MSG_RESULT(in default path)
-    else
-      AC_MSG_RESULT($GUI_INC_LOC)
-    fi
-  else
-    AC_MSG_RESULT(<not found>)
-    SKIP_MOTIF=YES
-  fi
-fi
-
-dnl Check for Motif library files location.  In the same order as the include
-dnl files, to avoid a mixup if several versions are present
-
-if test -z "$SKIP_MOTIF"; then
-  AC_MSG_CHECKING(--with-motif-lib argument)
-  AC_ARG_WITH(motif-lib,
-  [  --with-motif-lib=STRING Library for Motif ],
-  [ MOTIF_LIBNAME="${withval}" ] )
-
-  if test -n "$MOTIF_LIBNAME"; then
-    AC_MSG_RESULT($MOTIF_LIBNAME)
-    GUI_LIB_LOC=
-  else
-    AC_MSG_RESULT(no)
-
-    dnl Remove "-L" from before $GUI_LIB_LOC if it's there
-    GUI_LIB_LOC="`echo $GUI_LIB_LOC|sed 's%-L%%g'`"
-
-    dnl Ubuntu has libXm.so in /usr/lib/i386-linux-gnu and elsewhere.  The
-    dnl linker will figure out which one to use, we only check if one exists.
-    dnl Cygwin uses the .dll.a extension.
-    dnl OpenSUSE appears to use /usr/lib64.
-    AC_MSG_CHECKING(for location of Motif GUI libs)
-    gui_libs="`echo $x_libraries|sed 's%/[^/][^/]*$%%'` `echo "$gui_XXX" | sed s/XXX/lib/g` /usr/lib64 /usr/lib/i386-linux-gnu /usr/lib/x86_64-linux-gnu `echo "$GUI_INC_LOC" | sed s/include/lib/` $GUI_LIB_LOC"
-    GUI_LIB_LOC=
-    for try in $gui_libs; do
-      for libtry in "$try"/libXm.a "$try"/libXm.dll.a "$try"/libXm.so* "$try"/libXm.sl "$try"/libXm.dylib; do
-	if test -f "$libtry"; then
-	  GUI_LIB_LOC=$try
-	fi
-      done
+    AC_MSG_CHECKING(for location of Motif GUI includes)
+    gui_includes="`echo $x_includes|sed 's%/[^/][^/]*$%%'` `echo "$gui_XXX" | sed s/XXX/include/g` $GUI_INC_LOC"
+    GUI_INC_LOC=
+    for try in $gui_includes; do
+      if test -f "$try/Xm/Xm.h"; then
+	GUI_INC_LOC=$try
+      fi
     done
-    if test -n "$GUI_LIB_LOC"; then
-      dnl Remove /usr/lib, it causes trouble on some systems.
-      dnl For consistency also remove other standard lib directories.
-      if test "$GUI_LIB_LOC" = /usr/lib \
-	   -o "$GUI_LIB_LOC" = /usr/lib64 \
-	   -o "$GUI_LIB_LOC" = /usr/lib/i386-linux-gnu \
-	   -o "$GUI_LIB_LOC" = /usr/lib/x86_64-linux-gnu; then
-	GUI_LIB_LOC=
+    if test -n "$GUI_INC_LOC"; then
+      if test "$GUI_INC_LOC" = /usr/include; then
+	GUI_INC_LOC=
 	AC_MSG_RESULT(in default path)
       else
-	if test -n "$GUI_LIB_LOC"; then
-	  AC_MSG_RESULT($GUI_LIB_LOC)
-	  if test "$vim_cv_uname_output" = SunOS &&
-					 echo $vim_cv_uname_r_output | grep '^5' >/dev/null; then
-	    GUI_LIB_LOC="$GUI_LIB_LOC -R $GUI_LIB_LOC"
-	  fi
-	fi
+	AC_MSG_RESULT($GUI_INC_LOC)
       fi
-      MOTIF_LIBNAME=-lXm
     else
       AC_MSG_RESULT(<not found>)
       SKIP_MOTIF=YES
     fi
   fi
-fi
 
-if test -z "$SKIP_MOTIF"; then
-  GUITYPE=MOTIF
-  AC_SUBST(MOTIF_LIBNAME)
-fi
+  dnl Check for Motif library files location.  In the same order as the include
+  dnl files, to avoid a mixup if several versions are present
 
-if test -z "$SKIP_MOTIF"; then
-  dnl Prepend -I and -L to $GUI_INC_LOC and $GUI_LIB_LOC if not empty
-  dnl Avoid adding it when it twice
-  if test -n "$GUI_INC_LOC"; then
-    GUI_INC_LOC=-I"`echo $GUI_INC_LOC|sed 's%-I%%'`"
-  fi
-  if test -n "$GUI_LIB_LOC"; then
-    GUI_LIB_LOC=-L"`echo $GUI_LIB_LOC|sed 's%-L%%'`"
-  fi
-
-  dnl Check for -lXext and then for -lXmu
-  ldflags_save=$LDFLAGS
-  LDFLAGS="$X_LIBS $LDFLAGS"
-  AC_CHECK_LIB(Xext, XShapeQueryExtension, [GUI_X_LIBS="-lXext"],,
-		[-lXt $X_PRE_LIBS -lX11 $X_EXTRA_LIBS])
-  dnl For Solaris we need -lw and -ldl before linking with -lXmu works.
-  AC_CHECK_LIB(w, wslen, [X_EXTRA_LIBS="$X_EXTRA_LIBS -lw"],,
-		[$GUI_X_LIBS -lXt $X_PRE_LIBS -lX11 $X_EXTRA_LIBS])
-  AC_CHECK_LIB(dl, dlsym, [X_EXTRA_LIBS="$X_EXTRA_LIBS -ldl"],,
-		[$GUI_X_LIBS -lXt $X_PRE_LIBS -lX11 $X_EXTRA_LIBS])
-  AC_CHECK_LIB(Xmu, XmuCreateStippledPixmap, [GUI_X_LIBS="-lXmu $GUI_X_LIBS"],,
-		[$GUI_X_LIBS -lXt $X_PRE_LIBS -lX11 $X_EXTRA_LIBS])
   if test -z "$SKIP_MOTIF"; then
-    AC_CHECK_LIB(Xp, XpEndJob, [GUI_X_LIBS="-lXp $GUI_X_LIBS"],,
-		[$GUI_X_LIBS -lXm -lXt $X_PRE_LIBS -lX11 $X_EXTRA_LIBS])
-  fi
-  LDFLAGS=$ldflags_save
+    AC_MSG_CHECKING(--with-motif-lib argument)
+    AC_ARG_WITH(motif-lib,
+    [  --with-motif-lib=STRING Library for Motif ],
+    [ MOTIF_LIBNAME="${withval}" ] )
 
-  dnl Execute xmkmf to figure out if -DNARROWPROTO is needed.
-  AC_MSG_CHECKING(for extra X11 defines)
-  NARROW_PROTO=
-  rm -fr conftestdir
-  if mkdir conftestdir; then
-    cd conftestdir
-    cat > Imakefile <<'EOF'
-acfindx:
-	@echo 'NARROW_PROTO="${PROTO_DEFINES}"'
-EOF
-    if (xmkmf) >/dev/null 2>/dev/null && test -f Makefile; then
-      eval `${MAKE-make} acfindx 2>/dev/null | grep -v make`
+    if test -n "$MOTIF_LIBNAME"; then
+      AC_MSG_RESULT($MOTIF_LIBNAME)
+      GUI_LIB_LOC=
+    else
+      AC_MSG_RESULT(no)
+
+      dnl Remove "-L" from before $GUI_LIB_LOC if it's there
+      GUI_LIB_LOC="`echo $GUI_LIB_LOC|sed 's%-L%%g'`"
+
+      dnl Ubuntu has libXm.so in /usr/lib/i386-linux-gnu and elsewhere.  The
+      dnl linker will figure out which one to use, we only check if one exists.
+      dnl Cygwin uses the .dll.a extension.
+      dnl OpenSUSE appears to use /usr/lib64.
+      AC_MSG_CHECKING(for location of Motif GUI libs)
+      gui_libs="`echo $x_libraries|sed 's%/[^/][^/]*$%%'` `echo "$gui_XXX" | sed s/XXX/lib/g` /usr/lib64 /usr/lib/i386-linux-gnu /usr/lib/x86_64-linux-gnu `echo "$GUI_INC_LOC" | sed s/include/lib/` $GUI_LIB_LOC"
+      GUI_LIB_LOC=
+      for try in $gui_libs; do
+	for libtry in "$try"/libXm.a "$try"/libXm.dll.a "$try"/libXm.so* "$try"/libXm.sl "$try"/libXm.dylib; do
+	  if test -f "$libtry"; then
+	    GUI_LIB_LOC=$try
+	  fi
+	done
+      done
+      if test -n "$GUI_LIB_LOC"; then
+	dnl Remove /usr/lib, it causes trouble on some systems.
+	dnl For consistency also remove other standard lib directories.
+	if test "$GUI_LIB_LOC" = /usr/lib \
+	     -o "$GUI_LIB_LOC" = /usr/lib64 \
+	     -o "$GUI_LIB_LOC" = /usr/lib/i386-linux-gnu \
+	     -o "$GUI_LIB_LOC" = /usr/lib/x86_64-linux-gnu; then
+	  GUI_LIB_LOC=
+	  AC_MSG_RESULT(in default path)
+	else
+	  if test -n "$GUI_LIB_LOC"; then
+	    AC_MSG_RESULT($GUI_LIB_LOC)
+	    if test "$vim_cv_uname_output" = SunOS &&
+					   echo $vim_cv_uname_r_output | grep '^5' >/dev/null; then
+	      GUI_LIB_LOC="$GUI_LIB_LOC -R $GUI_LIB_LOC"
+	    fi
+	  fi
+	fi
+	MOTIF_LIBNAME=-lXm
+      else
+	AC_MSG_RESULT(<not found>)
+	SKIP_MOTIF=YES
+      fi
     fi
-    cd ..
+  fi
+
+  if test -z "$SKIP_MOTIF"; then
+    GUITYPE=MOTIF
+    AC_SUBST(MOTIF_LIBNAME)
+  fi
+
+  if test -z "$SKIP_MOTIF"; then
+    dnl Prepend -I and -L to $GUI_INC_LOC and $GUI_LIB_LOC if not empty
+    dnl Avoid adding it when it twice
+    if test -n "$GUI_INC_LOC"; then
+      GUI_INC_LOC=-I"`echo $GUI_INC_LOC|sed 's%-I%%'`"
+    fi
+    if test -n "$GUI_LIB_LOC"; then
+      GUI_LIB_LOC=-L"`echo $GUI_LIB_LOC|sed 's%-L%%'`"
+    fi
+
+    dnl Check for -lXext and then for -lXmu
+    ldflags_save=$LDFLAGS
+    LDFLAGS="$X_LIBS $LDFLAGS"
+    AC_CHECK_LIB(Xext, XShapeQueryExtension, [GUI_X_LIBS="-lXext"],,
+		  [-lXt $X_PRE_LIBS -lX11 $X_EXTRA_LIBS])
+    dnl For Solaris we need -lw and -ldl before linking with -lXmu works.
+    AC_CHECK_LIB(w, wslen, [X_EXTRA_LIBS="$X_EXTRA_LIBS -lw"],,
+		  [$GUI_X_LIBS -lXt $X_PRE_LIBS -lX11 $X_EXTRA_LIBS])
+    AC_CHECK_LIB(dl, dlsym, [X_EXTRA_LIBS="$X_EXTRA_LIBS -ldl"],,
+		  [$GUI_X_LIBS -lXt $X_PRE_LIBS -lX11 $X_EXTRA_LIBS])
+    AC_CHECK_LIB(Xmu, XmuCreateStippledPixmap, [GUI_X_LIBS="-lXmu $GUI_X_LIBS"],,
+		  [$GUI_X_LIBS -lXt $X_PRE_LIBS -lX11 $X_EXTRA_LIBS])
+    if test -z "$SKIP_MOTIF"; then
+      AC_CHECK_LIB(Xp, XpEndJob, [GUI_X_LIBS="-lXp $GUI_X_LIBS"],,
+		  [$GUI_X_LIBS -lXm -lXt $X_PRE_LIBS -lX11 $X_EXTRA_LIBS])
+    fi
+    LDFLAGS=$ldflags_save
+
+    dnl Execute xmkmf to figure out if -DNARROWPROTO is needed.
+    AC_MSG_CHECKING(for extra X11 defines)
+    NARROW_PROTO=
     rm -fr conftestdir
+    if mkdir conftestdir; then
+      cd conftestdir
+      cat > Imakefile <<'EOF'
+  acfindx:
+	  @echo 'NARROW_PROTO="${PROTO_DEFINES}"'
+EOF
+      if (xmkmf) >/dev/null 2>/dev/null && test -f Makefile; then
+	eval `${MAKE-make} acfindx 2>/dev/null | grep -v make`
+      fi
+      cd ..
+      rm -fr conftestdir
+    fi
+    if test -z "$NARROW_PROTO"; then
+      AC_MSG_RESULT(no)
+    else
+      AC_MSG_RESULT($NARROW_PROTO)
+    fi
+    AC_SUBST(NARROW_PROTO)
   fi
-  if test -z "$NARROW_PROTO"; then
-    AC_MSG_RESULT(no)
-  else
-    AC_MSG_RESULT($NARROW_PROTO)
-  fi
-  AC_SUBST(NARROW_PROTO)
 fi
 
 dnl Look for XSMP support - but don't necessarily restrict it to X11 GUIs
@@ -3270,42 +3268,44 @@ if test -z "$SKIP_MOTIF" -o -z "$SKIP_GTK2" -o -z "$SKIP_GTK3"; then
   fi
 fi
 
-if test -z "$SKIP_MOTIF"; then
-  cppflags_save=$CPPFLAGS
-  CPPFLAGS="$CPPFLAGS $X_CFLAGS"
-dnl Xmu/Editres.h may exist but can only be used after including Intrinsic.h
-  AC_MSG_CHECKING([for X11/Xmu/Editres.h])
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-#include <X11/Intrinsic.h>
-#include <X11/Xmu/Editres.h>],
-		      [int i; i = 0;])],
-	      AC_MSG_RESULT(yes)
-		      AC_DEFINE(HAVE_X11_XMU_EDITRES_H),
-	      AC_MSG_RESULT(no))
-  CPPFLAGS=$cppflags_save
-fi
-
-dnl Only use the Xm directory when compiling Motif.
-if test -z "$SKIP_MOTIF"; then
-  cppflags_save=$CPPFLAGS
-  CPPFLAGS="$CPPFLAGS $X_CFLAGS"
-  if test "$zOSUnix" = "yes"; then
-	AC_CHECK_HEADERS(Xm/Xm.h)
-  else
-	AC_CHECK_HEADERS(Xm/Xm.h Xm/XpmP.h Xm/JoinSideT.h Xm/TraitP.h Xm/Manager.h Xm/UnhighlightT.h Xm/Notebook.h)
+if test "$GUITYPE" == "NONE"; then
+  if test -z "$SKIP_MOTIF"; then
+    cppflags_save=$CPPFLAGS
+    CPPFLAGS="$CPPFLAGS $X_CFLAGS"
+  dnl Xmu/Editres.h may exist but can only be used after including Intrinsic.h
+    AC_MSG_CHECKING([for X11/Xmu/Editres.h])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+  #include <X11/Intrinsic.h>
+  #include <X11/Xmu/Editres.h>],
+			[int i; i = 0;])],
+		AC_MSG_RESULT(yes)
+			AC_DEFINE(HAVE_X11_XMU_EDITRES_H),
+		AC_MSG_RESULT(no))
+    CPPFLAGS=$cppflags_save
   fi
 
-  if test "x$ac_cv_header_Xm_XpmP_h" = "xyes"; then
-    dnl Solaris uses XpmAttributes_21, very annoying.
-    AC_MSG_CHECKING([for XpmAttributes_21 in Xm/XpmP.h])
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <Xm/XpmP.h>], [XpmAttributes_21 attr;])],
-	AC_MSG_RESULT(yes); AC_DEFINE(XPMATTRIBUTES_TYPE, XpmAttributes_21),
-	AC_MSG_RESULT(no); AC_DEFINE(XPMATTRIBUTES_TYPE, XpmAttributes)
-	)
-  else
-    AC_DEFINE(XPMATTRIBUTES_TYPE, XpmAttributes)
+  dnl Only use the Xm directory when compiling Motif.
+  if test -z "$SKIP_MOTIF"; then
+    cppflags_save=$CPPFLAGS
+    CPPFLAGS="$CPPFLAGS $X_CFLAGS"
+    if test "$zOSUnix" = "yes"; then
+	  AC_CHECK_HEADERS(Xm/Xm.h)
+    else
+	  AC_CHECK_HEADERS(Xm/Xm.h Xm/XpmP.h Xm/JoinSideT.h Xm/TraitP.h Xm/Manager.h Xm/UnhighlightT.h Xm/Notebook.h)
+    fi
+
+    if test "x$ac_cv_header_Xm_XpmP_h" = "xyes"; then
+      dnl Solaris uses XpmAttributes_21, very annoying.
+      AC_MSG_CHECKING([for XpmAttributes_21 in Xm/XpmP.h])
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <Xm/XpmP.h>], [XpmAttributes_21 attr;])],
+	  AC_MSG_RESULT(yes); AC_DEFINE(XPMATTRIBUTES_TYPE, XpmAttributes_21),
+	  AC_MSG_RESULT(no); AC_DEFINE(XPMATTRIBUTES_TYPE, XpmAttributes)
+	  )
+    else
+      AC_DEFINE(XPMATTRIBUTES_TYPE, XpmAttributes)
+    fi
+    CPPFLAGS=$cppflags_save
   fi
-  CPPFLAGS=$cppflags_save
 fi
 
 if test "$GUITYPE" = "NONE" -a "$enable_xim" = "yes"; then
@@ -3322,11 +3322,11 @@ if test "$GUITYPE:$enable_fontset" = "GTK:yes"; then
 fi
 
 dnl There is no test for the Haiku GUI, if it's selected it's used
-if test -z "$SKIP_HAIKU"; then
+if test "$GUITYPE" == "NONE" -a -z "$SKIP_HAIKU"; then
   GUITYPE=HAIKUGUI
 fi
 
-if test -z "$SKIP_PHOTON"; then
+if test "$GUITYPE" == "NONE" -a -z "$SKIP_PHOTON"; then
   GUITYPE=PHOTONGUI
 fi
 

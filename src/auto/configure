@@ -10693,7 +10693,7 @@ fi
 
 
 
-if test -z "$SKIP_GTK3"; then
+if test "$GUITYPE" == "NONE" -a -z "$SKIP_GTK3"; then
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking --disable-gtktest argument" >&5
 printf %s "checking --disable-gtktest argument... " >&6; }
   # Check whether --enable-gtktest was given.
@@ -10862,9 +10862,6 @@ fi
 
 
     if test -n "$GTK_CPPFLAGS"; then
-      SKIP_GTK2=YES
-      SKIP_GNOME=YES
-      SKIP_MOTIF=YES
       GUITYPE=GTK
 
       printf "%s\n" "#define USE_GTK3 1" >>confdefs.h
@@ -10873,7 +10870,7 @@ fi
   fi
 fi
 
-if test -z "$SKIP_GTK2"; then
+if test "$GUITYPE" == "NONE" -a -z "$SKIP_GTK2"; then
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking --disable-gtktest argument" >&5
 printf %s "checking --disable-gtktest argument... " >&6; }
   # Check whether --enable-gtktest was given.
@@ -11042,7 +11039,6 @@ fi
 
 
     if test -n "$GTK_CPPFLAGS"; then
-      SKIP_MOTIF=YES
       GUITYPE=GTK
 
     fi
@@ -11368,38 +11364,39 @@ fi
 
 
 
-if test -z "$SKIP_MOTIF"; then
-  gui_XXX="/usr/XXX/Motif* /usr/Motif*/XXX /usr/XXX /usr/shlib /usr/X11*/XXX /usr/XXX/X11* /usr/dt/XXX /local/Motif*/XXX /local/XXX/Motif* /usr/local/Motif*/XXX /usr/local/XXX/Motif* /usr/local/XXX /usr/local/X11*/XXX /usr/local/LessTif/Motif*/XXX $MOTIFHOME/XXX"
-    GUI_INC_LOC="`echo $GUI_INC_LOC|sed 's%-I%%g'`"
+if test "$GUITYPE" == "NONE"; then
+  if test -z "$SKIP_MOTIF"; then
+    gui_XXX="/usr/XXX/Motif* /usr/Motif*/XXX /usr/XXX /usr/shlib /usr/X11*/XXX /usr/XXX/X11* /usr/dt/XXX /local/Motif*/XXX /local/XXX/Motif* /usr/local/Motif*/XXX /usr/local/XXX/Motif* /usr/local/XXX /usr/local/X11*/XXX /usr/local/LessTif/Motif*/XXX $MOTIFHOME/XXX"
+        GUI_INC_LOC="`echo $GUI_INC_LOC|sed 's%-I%%g'`"
 
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for location of Motif GUI includes" >&5
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for location of Motif GUI includes" >&5
 printf %s "checking for location of Motif GUI includes... " >&6; }
-  gui_includes="`echo $x_includes|sed 's%/^/^/*$%%'` `echo "$gui_XXX" | sed s/XXX/include/g` $GUI_INC_LOC"
-  GUI_INC_LOC=
-  for try in $gui_includes; do
-    if test -f "$try/Xm/Xm.h"; then
-      GUI_INC_LOC=$try
-    fi
-  done
-  if test -n "$GUI_INC_LOC"; then
-    if test "$GUI_INC_LOC" = /usr/include; then
-      GUI_INC_LOC=
-      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: in default path" >&5
+    gui_includes="`echo $x_includes|sed 's%/^/^/*$%%'` `echo "$gui_XXX" | sed s/XXX/include/g` $GUI_INC_LOC"
+    GUI_INC_LOC=
+    for try in $gui_includes; do
+      if test -f "$try/Xm/Xm.h"; then
+	GUI_INC_LOC=$try
+      fi
+    done
+    if test -n "$GUI_INC_LOC"; then
+      if test "$GUI_INC_LOC" = /usr/include; then
+	GUI_INC_LOC=
+	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: in default path" >&5
 printf "%s\n" "in default path" >&6; }
-    else
-      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $GUI_INC_LOC" >&5
+      else
+	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $GUI_INC_LOC" >&5
 printf "%s\n" "$GUI_INC_LOC" >&6; }
-    fi
-  else
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <not found>" >&5
+      fi
+    else
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <not found>" >&5
 printf "%s\n" "<not found>" >&6; }
-    SKIP_MOTIF=YES
+      SKIP_MOTIF=YES
+    fi
   fi
-fi
 
 
-if test -z "$SKIP_MOTIF"; then
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking --with-motif-lib argument" >&5
+  if test -z "$SKIP_MOTIF"; then
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking --with-motif-lib argument" >&5
 printf %s "checking --with-motif-lib argument... " >&6; }
 
 # Check whether --with-motif-lib was given.
@@ -11409,70 +11406,70 @@ then :
 fi
 
 
-  if test -n "$MOTIF_LIBNAME"; then
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $MOTIF_LIBNAME" >&5
+    if test -n "$MOTIF_LIBNAME"; then
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $MOTIF_LIBNAME" >&5
 printf "%s\n" "$MOTIF_LIBNAME" >&6; }
-    GUI_LIB_LOC=
-  else
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+      GUI_LIB_LOC=
+    else
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
 printf "%s\n" "no" >&6; }
 
-        GUI_LIB_LOC="`echo $GUI_LIB_LOC|sed 's%-L%%g'`"
+            GUI_LIB_LOC="`echo $GUI_LIB_LOC|sed 's%-L%%g'`"
 
-                    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for location of Motif GUI libs" >&5
+                              { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for location of Motif GUI libs" >&5
 printf %s "checking for location of Motif GUI libs... " >&6; }
-    gui_libs="`echo $x_libraries|sed 's%/^/^/*$%%'` `echo "$gui_XXX" | sed s/XXX/lib/g` /usr/lib64 /usr/lib/i386-linux-gnu /usr/lib/x86_64-linux-gnu `echo "$GUI_INC_LOC" | sed s/include/lib/` $GUI_LIB_LOC"
-    GUI_LIB_LOC=
-    for try in $gui_libs; do
-      for libtry in "$try"/libXm.a "$try"/libXm.dll.a "$try"/libXm.so* "$try"/libXm.sl "$try"/libXm.dylib; do
-	if test -f "$libtry"; then
-	  GUI_LIB_LOC=$try
-	fi
+      gui_libs="`echo $x_libraries|sed 's%/^/^/*$%%'` `echo "$gui_XXX" | sed s/XXX/lib/g` /usr/lib64 /usr/lib/i386-linux-gnu /usr/lib/x86_64-linux-gnu `echo "$GUI_INC_LOC" | sed s/include/lib/` $GUI_LIB_LOC"
+      GUI_LIB_LOC=
+      for try in $gui_libs; do
+	for libtry in "$try"/libXm.a "$try"/libXm.dll.a "$try"/libXm.so* "$try"/libXm.sl "$try"/libXm.dylib; do
+	  if test -f "$libtry"; then
+	    GUI_LIB_LOC=$try
+	  fi
+	done
       done
-    done
-    if test -n "$GUI_LIB_LOC"; then
-                  if test "$GUI_LIB_LOC" = /usr/lib \
-	   -o "$GUI_LIB_LOC" = /usr/lib64 \
-	   -o "$GUI_LIB_LOC" = /usr/lib/i386-linux-gnu \
-	   -o "$GUI_LIB_LOC" = /usr/lib/x86_64-linux-gnu; then
-	GUI_LIB_LOC=
-	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: in default path" >&5
+      if test -n "$GUI_LIB_LOC"; then
+			if test "$GUI_LIB_LOC" = /usr/lib \
+	     -o "$GUI_LIB_LOC" = /usr/lib64 \
+	     -o "$GUI_LIB_LOC" = /usr/lib/i386-linux-gnu \
+	     -o "$GUI_LIB_LOC" = /usr/lib/x86_64-linux-gnu; then
+	  GUI_LIB_LOC=
+	  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: in default path" >&5
 printf "%s\n" "in default path" >&6; }
-      else
-	if test -n "$GUI_LIB_LOC"; then
-	  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $GUI_LIB_LOC" >&5
+	else
+	  if test -n "$GUI_LIB_LOC"; then
+	    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $GUI_LIB_LOC" >&5
 printf "%s\n" "$GUI_LIB_LOC" >&6; }
-	  if test "$vim_cv_uname_output" = SunOS &&
-					 echo $vim_cv_uname_r_output | grep '^5' >/dev/null; then
-	    GUI_LIB_LOC="$GUI_LIB_LOC -R $GUI_LIB_LOC"
+	    if test "$vim_cv_uname_output" = SunOS &&
+					   echo $vim_cv_uname_r_output | grep '^5' >/dev/null; then
+	      GUI_LIB_LOC="$GUI_LIB_LOC -R $GUI_LIB_LOC"
+	    fi
 	  fi
 	fi
-      fi
-      MOTIF_LIBNAME=-lXm
-    else
-      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <not found>" >&5
+	MOTIF_LIBNAME=-lXm
+      else
+	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: <not found>" >&5
 printf "%s\n" "<not found>" >&6; }
-      SKIP_MOTIF=YES
+	SKIP_MOTIF=YES
+      fi
     fi
   fi
-fi
 
-if test -z "$SKIP_MOTIF"; then
-  GUITYPE=MOTIF
+  if test -z "$SKIP_MOTIF"; then
+    GUITYPE=MOTIF
 
-fi
-
-if test -z "$SKIP_MOTIF"; then
-      if test -n "$GUI_INC_LOC"; then
-    GUI_INC_LOC=-I"`echo $GUI_INC_LOC|sed 's%-I%%'`"
-  fi
-  if test -n "$GUI_LIB_LOC"; then
-    GUI_LIB_LOC=-L"`echo $GUI_LIB_LOC|sed 's%-L%%'`"
   fi
 
-    ldflags_save=$LDFLAGS
-  LDFLAGS="$X_LIBS $LDFLAGS"
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XShapeQueryExtension in -lXext" >&5
+  if test -z "$SKIP_MOTIF"; then
+            if test -n "$GUI_INC_LOC"; then
+      GUI_INC_LOC=-I"`echo $GUI_INC_LOC|sed 's%-I%%'`"
+    fi
+    if test -n "$GUI_LIB_LOC"; then
+      GUI_LIB_LOC=-L"`echo $GUI_LIB_LOC|sed 's%-L%%'`"
+    fi
+
+        ldflags_save=$LDFLAGS
+    LDFLAGS="$X_LIBS $LDFLAGS"
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XShapeQueryExtension in -lXext" >&5
 printf %s "checking for XShapeQueryExtension in -lXext... " >&6; }
 if test ${ac_cv_lib_Xext_XShapeQueryExtension+y}
 then :
@@ -11520,7 +11517,7 @@ then :
   GUI_X_LIBS="-lXext"
 fi
 
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for wslen in -lw" >&5
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for wslen in -lw" >&5
 printf %s "checking for wslen in -lw... " >&6; }
 if test ${ac_cv_lib_w_wslen+y}
 then :
@@ -11568,7 +11565,7 @@ then :
   X_EXTRA_LIBS="$X_EXTRA_LIBS -lw"
 fi
 
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for dlsym in -ldl" >&5
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for dlsym in -ldl" >&5
 printf %s "checking for dlsym in -ldl... " >&6; }
 if test ${ac_cv_lib_dl_dlsym+y}
 then :
@@ -11616,7 +11613,7 @@ then :
   X_EXTRA_LIBS="$X_EXTRA_LIBS -ldl"
 fi
 
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XmuCreateStippledPixmap in -lXmu" >&5
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XmuCreateStippledPixmap in -lXmu" >&5
 printf %s "checking for XmuCreateStippledPixmap in -lXmu... " >&6; }
 if test ${ac_cv_lib_Xmu_XmuCreateStippledPixmap+y}
 then :
@@ -11664,8 +11661,8 @@ then :
   GUI_X_LIBS="-lXmu $GUI_X_LIBS"
 fi
 
-  if test -z "$SKIP_MOTIF"; then
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XpEndJob in -lXp" >&5
+    if test -z "$SKIP_MOTIF"; then
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XpEndJob in -lXp" >&5
 printf %s "checking for XpEndJob in -lXp... " >&6; }
 if test ${ac_cv_lib_Xp_XpEndJob+y}
 then :
@@ -11713,33 +11710,34 @@ then :
   GUI_X_LIBS="-lXp $GUI_X_LIBS"
 fi
 
-  fi
-  LDFLAGS=$ldflags_save
-
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for extra X11 defines" >&5
-printf %s "checking for extra X11 defines... " >&6; }
-  NARROW_PROTO=
-  rm -fr conftestdir
-  if mkdir conftestdir; then
-    cd conftestdir
-    cat > Imakefile <<'EOF'
-acfindx:
-	@echo 'NARROW_PROTO="${PROTO_DEFINES}"'
-EOF
-    if (xmkmf) >/dev/null 2>/dev/null && test -f Makefile; then
-      eval `${MAKE-make} acfindx 2>/dev/null | grep -v make`
     fi
-    cd ..
-    rm -fr conftestdir
-  fi
-  if test -z "$NARROW_PROTO"; then
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-  else
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $NARROW_PROTO" >&5
-printf "%s\n" "$NARROW_PROTO" >&6; }
-  fi
+    LDFLAGS=$ldflags_save
 
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for extra X11 defines" >&5
+printf %s "checking for extra X11 defines... " >&6; }
+    NARROW_PROTO=
+    rm -fr conftestdir
+    if mkdir conftestdir; then
+      cd conftestdir
+      cat > Imakefile <<'EOF'
+  acfindx:
+	  @echo 'NARROW_PROTO="${PROTO_DEFINES}"'
+EOF
+      if (xmkmf) >/dev/null 2>/dev/null && test -f Makefile; then
+	eval `${MAKE-make} acfindx 2>/dev/null | grep -v make`
+      fi
+      cd ..
+      rm -fr conftestdir
+    fi
+    if test -z "$NARROW_PROTO"; then
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+    else
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $NARROW_PROTO" >&5
+printf "%s\n" "$NARROW_PROTO" >&6; }
+    fi
+
+  fi
 fi
 
 if test "$enable_xsmp" = "yes"; then
@@ -11802,16 +11800,17 @@ printf "%s\n" "X GUI selected; xim has been enabled" >&6; }
   fi
 fi
 
-if test -z "$SKIP_MOTIF"; then
-  cppflags_save=$CPPFLAGS
-  CPPFLAGS="$CPPFLAGS $X_CFLAGS"
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for X11/Xmu/Editres.h" >&5
+if test "$GUITYPE" == "NONE"; then
+  if test -z "$SKIP_MOTIF"; then
+    cppflags_save=$CPPFLAGS
+    CPPFLAGS="$CPPFLAGS $X_CFLAGS"
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for X11/Xmu/Editres.h" >&5
 printf %s "checking for X11/Xmu/Editres.h... " >&6; }
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-#include <X11/Intrinsic.h>
-#include <X11/Xmu/Editres.h>
+  #include <X11/Intrinsic.h>
+  #include <X11/Xmu/Editres.h>
 int
 main (void)
 {
@@ -11824,7 +11823,7 @@ if ac_fn_c_try_compile "$LINENO"
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 printf "%s\n" "yes" >&6; }
-		      printf "%s\n" "#define HAVE_X11_XMU_EDITRES_H 1" >>confdefs.h
+			printf "%s\n" "#define HAVE_X11_XMU_EDITRES_H 1" >>confdefs.h
 
 else case e in #(
   e) { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
@@ -11832,22 +11831,22 @@ printf "%s\n" "no" >&6; } ;;
 esac
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
-  CPPFLAGS=$cppflags_save
-fi
+    CPPFLAGS=$cppflags_save
+  fi
 
-if test -z "$SKIP_MOTIF"; then
-  cppflags_save=$CPPFLAGS
-  CPPFLAGS="$CPPFLAGS $X_CFLAGS"
-  if test "$zOSUnix" = "yes"; then
-	ac_fn_c_check_header_compile "$LINENO" "Xm/Xm.h" "ac_cv_header_Xm_Xm_h" "$ac_includes_default"
+    if test -z "$SKIP_MOTIF"; then
+    cppflags_save=$CPPFLAGS
+    CPPFLAGS="$CPPFLAGS $X_CFLAGS"
+    if test "$zOSUnix" = "yes"; then
+	  ac_fn_c_check_header_compile "$LINENO" "Xm/Xm.h" "ac_cv_header_Xm_Xm_h" "$ac_includes_default"
 if test "x$ac_cv_header_Xm_Xm_h" = xyes
 then :
   printf "%s\n" "#define HAVE_XM_XM_H 1" >>confdefs.h
 
 fi
 
-  else
-	ac_fn_c_check_header_compile "$LINENO" "Xm/Xm.h" "ac_cv_header_Xm_Xm_h" "$ac_includes_default"
+    else
+	  ac_fn_c_check_header_compile "$LINENO" "Xm/Xm.h" "ac_cv_header_Xm_Xm_h" "$ac_includes_default"
 if test "x$ac_cv_header_Xm_Xm_h" = xyes
 then :
   printf "%s\n" "#define HAVE_XM_XM_H 1" >>confdefs.h
@@ -11890,12 +11889,12 @@ then :
 
 fi
 
-  fi
+    fi
 
-  if test "x$ac_cv_header_Xm_XpmP_h" = "xyes"; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XpmAttributes_21 in Xm/XpmP.h" >&5
+    if test "x$ac_cv_header_Xm_XpmP_h" = "xyes"; then
+            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XpmAttributes_21 in Xm/XpmP.h" >&5
 printf %s "checking for XpmAttributes_21 in Xm/XpmP.h... " >&6; }
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <Xm/XpmP.h>
 int
@@ -11915,15 +11914,16 @@ else case e in #(
   e) { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
 printf "%s\n" "no" >&6; }; printf "%s\n" "#define XPMATTRIBUTES_TYPE XpmAttributes" >>confdefs.h
 
-	 ;;
+	   ;;
 esac
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
-  else
-    printf "%s\n" "#define XPMATTRIBUTES_TYPE XpmAttributes" >>confdefs.h
+    else
+      printf "%s\n" "#define XPMATTRIBUTES_TYPE XpmAttributes" >>confdefs.h
 
+    fi
+    CPPFLAGS=$cppflags_save
   fi
-  CPPFLAGS=$cppflags_save
 fi
 
 if test "$GUITYPE" = "NONE" -a "$enable_xim" = "yes"; then
@@ -11942,11 +11942,11 @@ printf "%s\n" "GTK+ 2 GUI selected; fontset has been disabled" >&6; }
   enable_fontset="no"
 fi
 
-if test -z "$SKIP_HAIKU"; then
+if test "$GUITYPE" == "NONE" -a -z "$SKIP_HAIKU"; then
   GUITYPE=HAIKUGUI
 fi
 
-if test -z "$SKIP_PHOTON"; then
+if test "$GUITYPE" == "NONE" -a -z "$SKIP_PHOTON"; then
   GUITYPE=PHOTONGUI
 fi
 
