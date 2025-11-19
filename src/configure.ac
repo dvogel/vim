@@ -2627,11 +2627,11 @@ else
 fi
 
 dnl Check if --with-x was given but it doesn't work.
-if test "x$with_x" = xno -a "x$with_x_arg" = xyes; then
+if test "$with_x" = "no" -a "$with_x_arg" = "yes"; then
     AC_MSG_ERROR([could not configure X])
 fi
 
-test "x$with_x" = xno -a "x$HAIKU" != "xyes" -a "x$MACOS_X" != "xyes" -a "x$QNX" != "xyes" && enable_gui=no
+test "$with_x" = "no" -a "$HAIKU" != "yes" -a "$MACOS_X" != "yes" -a "$QNX" != "yes" && enable_gui=no
 
 AC_MSG_CHECKING(--enable-gui argument)
 AC_ARG_ENABLE(gui,
@@ -2651,7 +2651,7 @@ SKIP_PHOTON=YES
 SKIP_HAIKU=YES
 GUITYPE=NONE
 
-if test "x$HAIKU" = "xyes"; then
+if test "$HAIKU" = "yes"; then
   SKIP_HAIKU=
   case "$enable_gui_canon" in
     no)     AC_MSG_RESULT(no GUI support)
@@ -2662,7 +2662,7 @@ if test "x$HAIKU" = "xyes"; then
     *)      AC_MSG_RESULT([Sorry, $enable_gui GUI is not supported])
             SKIP_HAIKU=YES ;;
     esac
-elif test "x$QNX" = "xyes" -a "x$with_x" = "xno" ; then
+elif test "$QNX" = "yes" -a "$with_x" = "no" ; then
   SKIP_PHOTON=
   case "$enable_gui_canon" in
     no)		AC_MSG_RESULT(no GUI support)
@@ -2674,7 +2674,7 @@ elif test "x$QNX" = "xyes" -a "x$with_x" = "xno" ; then
 		SKIP_PHOTON=YES ;;
   esac
 
-elif test "x$MACOS_X" = "xyes" -a "x$with_x" = "xno" ; then
+elif test "$MACOS_X" = "yes" -a "$with_x" = "no" ; then
   case "$enable_gui_canon" in
     no)		AC_MSG_RESULT(no GUI support) ;;
     yes|"")	AC_MSG_RESULT(yes - automatic GUI support)
@@ -2706,48 +2706,48 @@ else
 
 fi
 
-if test "x$SKIP_GTK2" != "xYES" -a "$enable_gui_canon" != "gtk2" \
-				-a "$enable_gui_canon" != "gnome2"; then
+if test "$SKIP_GTK2" != "YES" -a "$enable_gui_canon" != "gtk2" \
+			      -a "$enable_gui_canon" != "gnome2"; then
   AC_MSG_CHECKING(whether or not to look for GTK+ 2)
   AC_ARG_ENABLE(gtk2-check,
 	[  --enable-gtk2-check     If auto-select GUI, check for GTK+ 2 [default=yes]],
 	, enable_gtk2_check="yes")
   AC_MSG_RESULT($enable_gtk2_check)
-  if test "x$enable_gtk2_check" = "xno"; then
+  if test "$enable_gtk2_check" = "no"; then
     SKIP_GTK2=YES
     SKIP_GNOME=YES
   fi
 fi
 
-if test "x$SKIP_GNOME" != "xYES" -a "$enable_gui_canon" != "gnome2"; then
+if test "$SKIP_GNOME" != "YES" -a "$enable_gui_canon" != "gnome2"; then
   AC_MSG_CHECKING(whether or not to look for GNOME)
   AC_ARG_ENABLE(gnome-check,
 	[  --enable-gnome-check    If GTK GUI, check for GNOME [default=no]],
 	, enable_gnome_check="no")
   AC_MSG_RESULT($enable_gnome_check)
-  if test "x$enable_gnome_check" = "xno"; then
+  if test "$enable_gnome_check" = "no"; then
     SKIP_GNOME=YES
   fi
 fi
 
-if test "x$SKIP_GTK3" != "xYES" -a "$enable_gui_canon" != "gtk3"; then
+if test "$SKIP_GTK3" != "YES" -a "$enable_gui_canon" != "gtk3"; then
   AC_MSG_CHECKING(whether or not to look for GTK+ 3)
   AC_ARG_ENABLE(gtk3-check,
 	[  --enable-gtk3-check     If auto-select GUI, check for GTK+ 3 [default=yes]],
 	, enable_gtk3_check="yes")
   AC_MSG_RESULT($enable_gtk3_check)
-  if test "x$enable_gtk3_check" = "xno"; then
+  if test "$enable_gtk3_check" = "no"; then
     SKIP_GTK3=YES
   fi
 fi
 
-if test "x$SKIP_MOTIF" != "xYES" -a "$enable_gui_canon" != "motif"; then
+if test "$SKIP_MOTIF" != "YES" -a "$enable_gui_canon" != "motif"; then
   AC_MSG_CHECKING(whether or not to look for Motif)
   AC_ARG_ENABLE(motif-check,
 	[  --enable-motif-check    If auto-select GUI, check for Motif [default=yes]],
 	, enable_motif_check="yes")
   AC_MSG_RESULT($enable_motif_check)
-  if test "x$enable_motif_check" = "xno"; then
+  if test "$enable_motif_check" = "no"; then
     SKIP_MOTIF=YES
   fi
 fi
@@ -2911,7 +2911,7 @@ AC_DEFUN([GNOME_INIT_HOOK],
       want_gnome=yes
       ifelse([$1], [], :, [$1])
     else
-      if test "x$withval" = xno; then
+      if test "$withval" = "no"; then
 	want_gnome=no
       else
 	want_gnome=yes
@@ -2922,7 +2922,7 @@ AC_DEFUN([GNOME_INIT_HOOK],
     fi,
     want_gnome=yes)
 
-  if test "x$want_gnome" = xyes; then
+  if test "$want_gnome" = "yes"; then
   {
     AC_MSG_CHECKING(for libgnomeui-2.0)
     if $PKG_CONFIG --exists libgnomeui-2.0; then
@@ -2944,7 +2944,7 @@ AC_DEFUN([GNOME_INIT_HOOK],
       $1
     else
       AC_MSG_RESULT(not found)
-      if test "x$2" = xfail; then
+      if test "$2" = "fail"; then
 	AC_MSG_ERROR(Could not find libgnomeui-2.0 via pkg-config)
       fi
     fi
@@ -2963,13 +2963,13 @@ if test -z "$SKIP_GTK3"; then
   AC_MSG_CHECKING(--disable-gtktest argument)
   AC_ARG_ENABLE(gtktest, [  --disable-gtktest       Do not try to compile and run a test GTK program],
 	, enable_gtktest=yes)
-  if test "x$enable_gtktest" = "xyes" ; then
+  if test "$enable_gtktest" = "yes" ; then
     AC_MSG_RESULT(gtk test enabled)
   else
     AC_MSG_RESULT(gtk test disabled)
   fi
 
-  if test "x$PKG_CONFIG" != "xno"; then
+  if test "$PKG_CONFIG" != "no"; then
     AM_PATH_GTK(3.0.0,
 		[GUI_LIB_LOC="$GTK_LIBDIR"
 		 GTK_LIBNAME="$GTK_LIBS"
@@ -2992,13 +2992,13 @@ if test -z "$SKIP_GTK2"; then
   AC_MSG_CHECKING(--disable-gtktest argument)
   AC_ARG_ENABLE(gtktest, [  --disable-gtktest       Do not try to compile and run a test GTK program],
 	, enable_gtktest=yes)
-  if test "x$enable_gtktest" = "xyes" ; then
+  if test "$enable_gtktest" = "yes" ; then
     AC_MSG_RESULT(gtk test enabled)
   else
     AC_MSG_RESULT(gtk test disabled)
   fi
 
-  if test "x$PKG_CONFIG" != "xno"; then
+  if test "$PKG_CONFIG" != "no"; then
     dnl First try finding version 2.2.0 or later.  The 2.0.x series has
     dnl problems (bold fonts, --remote doesn't work).
     AM_PATH_GTK(2.2.0,
@@ -3011,14 +3011,14 @@ if test -z "$SKIP_GTK2"; then
       AC_SUBST(GTK_LIBNAME)
     fi
   fi
-  if test "x$GUITYPE" = "xGTK"; then
+  if test "$GUITYPE" = "GTK"; then
     dnl
     dnl if GTK exists, then check for GNOME.
     dnl
     if test -z "$SKIP_GNOME"; then
     {
       GNOME_INIT_HOOK([have_gnome=yes])
-      if test "x$have_gnome" = xyes ; then
+      if test "$have_gnome" = yes ; then
 	AC_DEFINE(FEAT_GUI_GNOME)
 	GUI_INC_LOC="$GUI_INC_LOC $GNOME_INCLUDEDIR"
 	GTK_LIBNAME="$GTK_LIBNAME $GNOME_LIBDIR $GNOME_LIBS"
@@ -3030,18 +3030,18 @@ fi
 
 dnl Check the version of Gdk-Pixbuf.  If the version is 2.31 or later and
 dnl glib-compile-resources is found in PATH, use GResource.
-if test "x$GUITYPE" = "xGTK"; then
+if test "$GUITYPE" = "GTK"; then
   AC_MSG_CHECKING([version of Gdk-Pixbuf])
   gdk_pixbuf_version=`$PKG_CONFIG --modversion gdk-pixbuf-2.0`
-  if test "x$gdk_pixbuf_version" != x ; then
+  if test "$gdk_pixbuf_version" != "" ; then
     gdk_pixbuf_version_minor=`echo $gdk_pixbuf_version | \
       sed -e 's/[[0-9]][[0-9]]*\.\([[0-9]][[0-9]]*\)\.[[0-9]][[0-9]]*/\1/'`
-    if test "x$gdk_pixbuf_version_minor" != x -a \
+    if test "$gdk_pixbuf_version_minor" != "" -a \
 	$gdk_pixbuf_version_minor -ge 31 ; then
       AC_MSG_RESULT([OK.])
       AC_PATH_PROG(GLIB_COMPILE_RESOURCES,[glib-compile-resources],no)
       AC_MSG_CHECKING([glib-compile-resources])
-      if test "x$GLIB_COMPILE_RESOURCES" = xno ; then
+      if test "$GLIB_COMPILE_RESOURCES" = "no" ; then
 	GLIB_COMPILE_RESOURCES=""
 	AC_MSG_RESULT([cannot be found in PATH.])
       else
@@ -3065,7 +3065,7 @@ if test "x$GUITYPE" = "xGTK"; then
   if test "$enable_icon_cache_update" = "yes"; then
     AC_MSG_RESULT([not set])
     AC_PATH_PROG(GTK_UPDATE_ICON_CACHE,[gtk-update-icon-cache],no)
-    if test "x$GTK_UPDATE_ICON_CACHE" = "xno" ; then
+    if test "$GTK_UPDATE_ICON_CACHE" = "no" ; then
       AC_MSG_RESULT([not found in PATH.])
     fi
   else
@@ -3080,7 +3080,7 @@ if test "x$GUITYPE" = "xGTK"; then
   if test "$enable_desktop_database_update" = "yes"; then
     AC_MSG_RESULT([not set])
     AC_PATH_PROG(UPDATE_DESKTOP_DATABASE,[update-desktop-database],no)
-    if test "x$UPDATE_DESKTOP_DATABASE" = "xno" ; then
+    if test "$UPDATE_DESKTOP_DATABASE" = "no" ; then
       AC_MSG_RESULT([not found in PATH.])
     fi
   else
@@ -3264,7 +3264,7 @@ if test -z "$SKIP_MOTIF" -o -z "$SKIP_GTK2" -o -z "$SKIP_GTK3"; then
   CPPFLAGS=$cppflags_save
 
   dnl automatically enable XIM in the GUI
-  if test "$enable_xim" = "auto" -a "x$GUITYPE" != "xNONE" ; then
+  if test "$enable_xim" = "auto" -a "$GUITYPE" != "NONE" ; then
     AC_MSG_RESULT(X GUI selected; xim has been enabled)
     enable_xim="yes"
   fi
@@ -3308,15 +3308,15 @@ if test -z "$SKIP_MOTIF"; then
   CPPFLAGS=$cppflags_save
 fi
 
-if test "x$GUITYPE" = "xNONE" -a "$enable_xim" = "yes"; then
+if test "$GUITYPE" = "NONE" -a "$enable_xim" = "yes"; then
   AC_MSG_RESULT(no GUI selected; xim has been disabled)
   enable_xim="no"
 fi
-if test "x$GUITYPE" = "xNONE" -a "$enable_fontset" = "yes"; then
+if test "$GUITYPE" = "NONE" -a "$enable_fontset" = "yes"; then
   AC_MSG_RESULT(no GUI selected; fontset has been disabled)
   enable_fontset="no"
 fi
-if test "x$GUITYPE:$enable_fontset" = "xGTK:yes"; then
+if test "$GUITYPE:$enable_fontset" = "GTK:yes"; then
   AC_MSG_RESULT(GTK+ 2 GUI selected; fontset has been disabled)
   enable_fontset="no"
 fi
@@ -3374,7 +3374,7 @@ AC_MSG_CHECKING(for CYGWIN or MSYS environment)
 case $vim_cv_uname_output in
     CYGWIN*|MSYS*)    CYGWIN=yes; AC_MSG_RESULT(yes)
                 AC_MSG_CHECKING(for CYGWIN clipboard support)
-                if test "x$with_x" = "xno" ; then
+                if test "$with_x" = "no" ; then
                   OS_EXTRA_SRC=winclip.c; OS_EXTRA_OBJ=objects/winclip.o
                   AC_MSG_RESULT(yes)
                   AC_DEFINE(FEAT_CYGWIN_WIN32_CLIPBOARD)
@@ -4237,7 +4237,7 @@ else
   AC_MSG_RESULT(yes)
 fi
 
-if test "x$GTK_CPPFLAGS" != "x"; then
+if test "$GTK_CPPFLAGS" != ""; then
   dnl pango_shape_full() is new, fall back to pango_shape().
   AC_MSG_CHECKING(for pango_shape_full)
   ac_save_CPPFLAGS="$CPPFLAGS"
@@ -4532,7 +4532,7 @@ fi
 dnl Check for multibyte locale functions
 dnl Find out if _Xsetlocale() is supported by libX11.
 dnl Check if X_LOCALE should be defined.
-if test "x$with_x" = "xyes"; then
+if test "$with_x" = "yes"; then
   cflags_save=$CFLAGS
   libs_save=$LIBS
   LIBS="$LIBS $X_LIBS $GUI_LIB_LOC $GUI_X_LIBS $X_PRE_LIBS $X_LIB $X_EXTRA_LIBS"
