@@ -16,7 +16,7 @@
 
 #include <wayland-client.h>
 
-#ifdef FEAT_WAYLAND_CLIPBOARD
+#if defined(FEAT_WAYLAND_CLIPBOARD) && !defined(DEPEND)
 # include "auto/wayland/wlr-data-control-unstable-v1.h"
 # include "auto/wayland/ext-data-control-v1.h"
 # ifdef FEAT_WAYLAND_CLIPBOARD_FS

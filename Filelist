@@ -589,6 +589,7 @@ SRC_DOS =	\
 		src/Make_cyg_ming.mak \
 		src/Make_ming.mak \
 		src/Make_mvc.mak \
+		tools/cpp_depend_filter.sh \
 		tools/rename.bat \
 		src/bigvim.bat \
 		src/bigvim64.bat \
